@@ -1,2 +1,2 @@
 # SNAP_Analyses
-Empty repo for database analyses
+Repo for SNAP database meta-analyses, project analyses and tables
