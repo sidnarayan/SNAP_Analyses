@@ -10,7 +10,7 @@ library(mapdata)
 library(rworldmap)
 require(gridExtra) # for plotting multiple plots
 
-# Data Input
+# Data Input 
 alldata<-read.table("C:/Rfiles/SNAP/WaveReductionData_20150902.txt", header = TRUE, sep="\t")
 costdata<-read.table("C:/Rfiles/SNAP/Projectdata_20151117.txt", header = TRUE)
 
