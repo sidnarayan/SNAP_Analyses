@@ -579,6 +579,15 @@ CRHsplot<-ggplot(data=reefdata,group=Habitat)+geom_point(aes(x=HsC,y=R,shape=Hab
 #   annotate('text',x=1.65,y=0.67,label=paste("slope==",format(nls_R2_reef_H, digits=4)),parse=TRUE)
 CRHsplot
 
+reef_HsC_lm_Abs<-lm((reefdata$HsC - reefdata$HsT)~reefdata$HsC)
+CRHsplot_Abs<-ggplot(data=reefdata,group=Habitat)+geom_point(aes(x=HsC,y=(HsC-HsT),shape=Habitat))+
+  labs(title="Reefs",x="",y="Absolute Wave Attenuation (Hsc - HsT) (m)")+scale_shape_manual("Reef Environment",values=c(2,4,3),labels=c("Crest","Flat","Whole Reef"))+
+  theme_bw()+theme(legend.position=c(0,1), legend.justification=c(0,1))+
+  geom_smooth(data=reefdata,aes(x=HsC,y=HsC-HsT),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
+  annotate('text',x=1.05,y=1.7,label=paste("R^2==",format(summary(reef_HsC_lm_Abs)$adj.r.squared, digits=4)),parse=TRUE)+
+  annotate('text',x=1.65,y=1.67,label=paste("slope==",format(summary(reef_HsC_lm_Abs)$coefficients[2,1], digits=4)),parse=TRUE)
+CRHsplot_Abs
+
 # Width vs Wave Attn
 nls_reef_B<-nls(R~a*log(B)+b,reefdata,start=list(a=0.1,b=0.01))
 nls_R2_reef_B<-1-sum(residuals(nls_reef_B)^2)/sum((reefdata$R - mean(reefdata$R))^2)
@@ -596,6 +605,14 @@ MGHsplot<-ggplot(data=mgdata)+geom_point(aes(x=HsC,y=R),shape=0)+
   labs(title="Mangroves",x="",y="Wave Reduction %")+
   theme_bw()+scale_y_continuous(labels=function(x)x*100)
 MGHsplot
+
+mg_HsC_lm_Abs<-lm((mgdata$HsC - mgdata$HsT)~mgdata$HsC)
+MGHsplot_Abs<-ggplot(data=mgdata)+geom_point(aes(x=HsC,y=(HsC-HsT)),shape=0)+
+  labs(title="Mangroves",x="",y="Absolute Wave Attenuation (Hsc - HsT) (m)")+
+  theme_bw()+geom_smooth(data=mgdata,aes(x=HsC,y=HsC-HsT),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
+  annotate('text',x=0.12,y=0.31,label=paste("R^2==",format(summary(mg_HsC_lm_Abs)$adj.r.squared, digits=4)),parse=TRUE)+
+  annotate('text',x=0.24,y=0.305,label=paste("slope==",format(summary(mg_HsC_lm_Abs)$coefficients[2,1], digits=4)),parse=TRUE)
+MGHsplot_Abs
 
 # hv vs Wave Attn
 mg_hv_lm<-lm(R~hv,mgdata)
@@ -628,6 +645,14 @@ SMHsplot<-ggplot(data=smdata)+geom_point(aes(x=HsC,y=R),shape=5)+
   theme_bw()+scale_y_continuous(labels=function(x)x*100)
 SMHsplot
 
+sm_HsC_lm_Abs<-lm((smdata$HsC - smdata$HsT)~smdata$HsC)
+SMHsplot_Abs<-ggplot(data=smdata)+geom_point(aes(x=HsC,y=(HsC-HsT)),shape=5)+
+  labs(title="Salt-Marsh",x="Incident Wave Height, HsC (m)",y="Absolute Wave Attenuation (Hsc - HsT) (m)")+
+  theme_bw()+geom_smooth(data=smdata,aes(x=HsC,y=HsC-HsT),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
+  annotate('text',x=0.14,y=0.62,label=paste("R^2==",format(summary(sm_HsC_lm_Abs)$adj.r.squared, digits=4)),parse=TRUE)+
+  annotate('text',x=0.44,y=0.61,label=paste("slope==",format(summary(sm_HsC_lm_Abs)$coefficients[2,1], digits=4)),parse=TRUE)
+SMHsplot_Abs
+
 # B vs Wave Attn (no sig relationship)
 sm_B_lm<-lm(R~B,smdata)
 SMBplot<-ggplot(data=smdata)+geom_point(aes(x=B,y=R),shape=5)+
@@ -650,6 +675,14 @@ SGHsplot<-ggplot(data=sgdata)+geom_point(aes(x=HsC,y=R),shape=8)+
   theme_bw()+scale_y_continuous(labels=function(x)x*100)
 SGHsplot
 
+sg_HsC_lm_Abs<-lm((sgdata$HsC - sgdata$HsT)~sgdata$HsC)
+SGHsplot_Abs<-ggplot(data=sgdata)+geom_point(aes(x=HsC,y=(HsC-HsT)),shape=8)+
+  labs(title="Seagrass/Kelp",x="Incident Wave Height, HsC (m)",y="Absolute Wave Attenuation (Hsc - HsT) (m)")+
+  theme_bw()+geom_smooth(data=sgdata,aes(x=HsC,y=HsC-HsT),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
+  annotate('text',x=0.15,y=0.46,label=paste("R^2==",format(summary(sg_HsC_lm_Abs)$adj.r.squared, digits=4)),parse=TRUE)+
+  annotate('text',x=0.45,y=0.45,label=paste("slope==",format(summary(sg_HsC_lm_Abs)$coefficients[2,1], digits=4)),parse=TRUE)
+SGHsplot_Abs
+
 # B vs Abs Wave Attn
 sg_B_lm<-lm(R~B,sgdata)
 SGBplot<-ggplot(data=sgdata)+geom_point(aes(x=B,y=R),shape=8)+
@@ -660,6 +693,7 @@ SGBplot
 grid.arrange(CRBplot,MGBplot,SMBplot,SGBplot,ncol=2)
 grid.arrange(CRHsplot,MGHsplot,SMHsplot,SGHsplot,ncol=2)
 grid.arrange(CRHsplot,MGHsplot,SMHsplot,SGHsplot,CRBplot,MGBplot,SMBplot,SGBplot, nrow=4,ncol=2)
+grid.arrange(CRHsplot_Abs,MGHsplot_Abs,SMHsplot_Abs,SGHsplot_Abs,ncol=2)
 
 # ALL-HABITAT PLOTS
 # B vs Wave Attn
