@@ -198,8 +198,8 @@ meta_grasses<- sgdata %>%
     ULm_energy=(1-(1-ULm/100)^2)*100    
   )
 
-meanRRvals=data.frame(matrix(NA,ncol=7,nrow=4))
-colnames(meanRRvals)<-c("Habitat","Mean Wave Height Reduction %","95% CI Lower", "95% CI Upper","Mean Wave Energy Reduction %","95% CI Lower (Energy)","95% CI Upper (Energy)")
+meanRRvals=data.frame(matrix(NA,ncol=8,nrow=4))
+colnames(meanRRvals)<-c("Habitat","Mean Wave Height Reduction %","95% CI Lower", "95% CI Upper","Mean Wave Energy Reduction %","95% CI Lower (Energy)","95% CI Upper (Energy)","Average Measured Wave Height (m)")
 meanRRvals[1:4,1]=c("Coral Reefs","Salt_Marshes","Mangroves","Seagrass/Kelp Beds")
 meanRRvals[1:4,2]=c(mean(meta_reefs$MeanRR),mean(meta_marshes$MeanRR),mean(meta_mangroves$MeanRR),mean(meta_grasses$MeanRR))
 meanRRvals[1:4,3]=c(mean(meta_reefs$ULm),mean(meta_marshes$ULm),mean(meta_mangroves$ULm),mean(meta_grasses$ULm))
@@ -207,6 +207,7 @@ meanRRvals[1:4,4]=c(mean(meta_reefs$LLm),mean(meta_marshes$LLm),mean(meta_mangro
 meanRRvals[1:4,5]=c(mean(meta_reefs$MeanRR_energy),mean(meta_marshes$MeanRR_energy),mean(meta_mangroves$MeanRR_energy),mean(meta_grasses$MeanRR_energy))
 meanRRvals[1:4,6]=c(mean(meta_reefs$ULm_energy),mean(meta_marshes$ULm_energy),mean(meta_mangroves$ULm_energy),mean(meta_grasses$ULm_energy))
 meanRRvals[1:4,7]=c(mean(meta_reefs$LLm_energy),mean(meta_marshes$LLm_energy),mean(meta_mangroves$LLm_energy),mean(meta_grasses$LLm_energy))
+meanRRvals[1:4,8]=c(mean(reefdata$HsC),mean(smdata$HsC),mean(mgdata$HsC),mean(sgdata$HsC))
 
 ############# PROJECT DATA CALCULATIONS #################
 
@@ -547,7 +548,6 @@ map_benefits
 # map_nearby
 
 grid.arrange(map, map_benefits, nrow=2)
-
 
 ################### TREND ANALYSES BY HABITAT ###############################
 
