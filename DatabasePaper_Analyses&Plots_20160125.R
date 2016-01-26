@@ -467,7 +467,8 @@ grid.arrange(map, map_benefits, nrow=2)
 
 ################### TREND ANALYSES PLOTS ###############################
 
-## WAVE REDUCTION PERCENTAGES VERSUS HABITAT WIDTH PLOTS
+## Hs Reduction Versus Width Plots
+#Reefs
 nls_reef_B<-nls(R~a*log(B)+b,reefdata,start=list(a=0.1,b=0.01))
 nls_R2_reef_B<-1-sum(residuals(nls_reef_B)^2)/sum((reefdata$R - mean(reefdata$R))^2)
 CRBplot<-ggplot(data=reefdata,group=Habitat)+geom_point(aes(x=B,y=R,shape=Habitat),size=3)+ylim(-0.2,1.5)+
@@ -477,212 +478,21 @@ CRBplot<-ggplot(data=reefdata,group=Habitat)+geom_point(aes(x=B,y=R,shape=Habita
   scale_y_continuous(labels=function(x)x*100)+annotate('text',x=2800,y=0.8,label=paste("R^2==",format(nls_R2_reef_B, digits=4)),parse=TRUE)
 CRBplot
 
-MGBplot<-ggplot(data=mgdata)+geom_point(aes(x=B,y=R),shape=0)+
-  labs(title="Mangroves",x="",y="Wave Reduction %")+
-  theme_bw()+scale_y_continuous(labels=function(x)x*100)
-MGBplot
-
-sm_B_lm<-lm(R~B,smdata)
-SMBplot<-ggplot(data=smdata)+geom_point(aes(x=B,y=R),shape=5)+
-  labs(title="Salt-Marsh",x="Habitat Width (m)",y="Wave Reduction %")+
-  theme_bw()+scale_y_continuous(labels=function(x)x*100)
-SMBplot
-
-sg_B_lm<-lm(R~B,sgdata)
-SGBplot<-ggplot(data=sgdata)+geom_point(aes(x=B,y=R),shape=8)+
-  labs(title="Seagrass/Kelp",x="Habitat Width (m)",y="Wave Reduction %")+
-  theme_bw()+scale_y_continuous(labels=function(x)x*100)
-SGBplot
+#Others
+Width_plot<-function(plotdata,Title,Shapedata)
+{
+  ggplot(data=plotdata)+geom_point(aes(x=B,y=R),shape=Shapedata)+
+    labs(title=Title,x="Habitat Width (m)",y="Wave Reduction %")+
+    theme_bw()+scale_y_continuous(labels=function(x)x*100)
+}
+MGBplot<-Width_plot(mgdata,"Mangroves",0)
+SMBplot<-Width_plot(smdata,"Salt-Marshes",5)
+SGBplot<-Width_plot(sgdata,"Seagrass/Kelp",8)
 
 grid.arrange(CRBplot,MGBplot,SMBplot,SGBplot,ncol=2)
 
-# ALL-HABITAT PLOTS
-# B vs Wave Attn
-nls_allB<-nls(R~I(a*log(B)+b),data=wvdata,start=list(a=0.01,b=0.1))
-nls_allB_R2<-1-sum(residuals(nls_allB)^2)/sum((wvdata$R - mean(wvdata$R))^2)
-allBplot<-ggplot(data=wvdata, group=HabitatGrp)+geom_point(aes(x=B,y=R,shape=HabitatGrp))+
-  labs(x="Habitat Width (m)",y="Wave Reduction %")+scale_shape_manual("Habitat", values=c(2,0,8,5),labels=c("Reef","Mangrove","Seagrass/Kelp","Salt-Marsh"))+
-  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(1,0))+
-  geom_smooth(data=wvdata,aes(x=B,y=R),method="nls",formula=y~I(a*log(x)+b),start=list(a=0.1,b=0.01),se=FALSE,linetype=2,colour="black")+
-  scale_y_continuous(labels=function(x)x*100)+annotate('text',x=3000,y=0.15,label=paste("R^2==",format(nls_allB_R2, digits=4)),parse=TRUE)
-allBplot
-
-## DIMENSIONLESS PARAMETER PLOTS BY HABITAT
-#REEFS
-#H/h
-wvdata<-subset(alldata,alldata$HsC!=1)
-reefdata<-wvdata[grep("CR",wvdata$Habitat),] # grep() subsets data frame by rows based on a char variable
-MVRdata_R_REEF<-reefdata[c("Habitat","HsC","HsT","R", "Hbyh")]
-MVRdata_R_REEF<-MVRdata_R_REEF[complete.cases(MVRdata_R_REEF),]
-nls_reef_Hbyh<-nls(R~a*log(Hbyh)+b,MVRdata_R_REEF,start=list(a=0.1,b=0.01))
-nls_R2_reef_Hbyh<-1-sum(residuals(nls_reef_Hbyh)^2)/sum(MVRdata_R_REEF$R - mean(MVRdata_R_REEF$R)^2)
-REEFHbyhplot<-ggplot(data=MVRdata_R_REEF, group=Habitat)+geom_point(aes(x=Hbyh,y=R,shape=Habitat))+
-  labs(title="Reefs",x="Relative wave height, H/h",y="Wave Attenuation %")+scale_shape_manual("Reef Environment",values=c(2,4,3),labels=c("Crest","Flat","Whole Reef"))+
-  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(1,0))+
-  geom_smooth(data=MVRdata_R_REEF,aes(x=Hbyh,y=R),method=nls,formula=y~I(a*log(x)+b),se=FALSE,start=list(a=0.1,b=0.01), linetype=2,colour="black")+
-  annotate('text',x=1.5,y=0.6,label=paste("R^2==",format(nls_R2_reef_Hbyh, digits=4)),parse=TRUE)
-  geom_vline(xintercept=0.78, linetype="dotted", color="red")
-REEFHbyhplot
-
-#B/L
-wvdata<-subset(alldata,alldata$HsC!=-999)
-reefdata<-wvdata[grep("CR",wvdata$Habitat),] # grep() subsets data frame by rows based on a char variable
-MVRdata_R_reef_all<-reefdata[c("Habitat","HsC","HsT","R","X")]
-MVRdata_R_reef_all<-MVRdata_R_reef_all[complete.cases(MVRdata_R_reef_all),]
-MVRdata_R_reef_out<-subset(MVRdata_R_reef_all, MVRdata_R_reef_all$X>50)
-MVRdata_R_reef<-reefdata_noXoutlier[c("Habitat","HsC","HsT","R","X")]
-MVRdata_R_reef<-MVRdata_R_reef[complete.cases(MVRdata_R_reef),]
-nls_reef_BbyL<-nls(R~a*log(X)+b,MVRdata_R_reef,start=list(a=0.1,b=0.01))
-nls_R2_reef_BbyL<-1-sum(residuals(nls_reef_BbyL)^2)/sum(MVRdata_R_reef$R - mean(MVRdata_R_reef$R)^2)
-sub<-ggplot(data=MVRdata_R_reef_all, group=Habitat)+geom_point(aes(x=X,y=R,shape=Habitat))+
-  geom_rect(data=MVRdata_R_reef_all$BbyL, xmin=0, xmax=20,ymin=-0.2, ymax=1,fill="light blue",alpha=0.7)+
-  theme_bw()+theme(legend.position="none")+labs(x="B/L",y="Wave Reduction %")
-sub$layers<-rev(sub$layers)
-reefBbyLplot<-ggplot(data=MVRdata_R_reef, group=Habitat)+geom_point(aes(x=X,y=R,shape=Habitat))+
-  labs(title="Reefs",x="Relative Width, B/L",y="Wave Reduction %")+scale_shape_manual("Reef Environment",values=c(2,4,3),labels=c("Crest","Flat","Whole Reef"))+
-  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(1,0))+
-  geom_smooth(data=MVRdata_R_reef,aes(x=X,y=R),method=nls,formula=y~I(a*log(x)+b),start=list(a=0.1,b=0.01),se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=8,y=0.6,label=paste("R^2==",format(nls_R2_reef_BbyL, digits=4)),parse=TRUE)+
-  annotation_custom(ggplotGrob(sub),xmin=3,xmax=10,ymin=-0.2,ymax=0.3)
-reefBbyLplot
-
-grid.arrange(REEFHbyhplot,main,ncol=2)
-
-#MANGROVES
-#H/h
-MVRdata_R_MG<-mgdata[c("Habitat","HsC","HsT","R", "Hbyh")]
-MVRdata_R_MG<-MVRdata_R_MG[complete.cases(MVRdata_R_MG),]
-MVRdata_R_MG_glm<-lm(R~Hbyh, MVRdata_R_MG)
-summary(MVRdata_R_MG_glm) 
-MGHbyhplot<-ggplot(data=MVRdata_R_MG)+geom_point(aes(x=Hbyh,y=R),shape=0)+
-  labs(title="Mangroves",x="Relative wave height, H/h",y="Wave Attenuation %")+
-  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(0,1))+
-  geom_smooth(data=MVRdata_R_MG,aes(x=Hbyh,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=0.15,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_MG_glm)$adj.r.squared, digits=4)),parse=TRUE)
-MGHbyhplot
-
-#hv/h
-MVRdata_R_MG_sub<-mgdata_submerge[c("Habitat","HsC","HsT","R","alpha")]
-MVRdata_R_MG_sub<-MVRdata_R_MG_sub[complete.cases(MVRdata_R_MG_sub),]
-MVRdata_R_MG_out<-subset(MVRdata_R_MG_sub, MVRdata_R_MG_sub$alpha<0.5)
-MVRdata_R_MG_sub<-subset(MVRdata_R_MG_sub, MVRdata_R_MG_sub$alpha>0.5) ## Caution! Removing outlier!
-MVRdata_R_MG_glm_sub<-lm(R~alpha, MVRdata_R_MG_sub)
-summary(MVRdata_R_MG_glm_sub) 
-MGhvbyhplot_submerge<-ggplot(data=MVRdata_R_MG_sub)+geom_point(aes(x=alpha,y=R),shape=0)+
-  labs(title="Mangroves",x="Relative vegetation height, hv/h",y="Wave Attenuation %")+
-  theme_bw()+geom_smooth(data=MVRdata_R_MG_sub,aes(x=alpha,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=0.7,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_MG_glm_sub)$adj.r.squared, digits=4)),parse=TRUE)
-MGhvbyhplot_submerge
-MVRdata_R_MG_emg<-mgdata_emerge[c("Habitat","HsC","HsT","R","alpha")]
-MVRdata_R_MG_emg<-MVRdata_R_MG_emg[complete.cases(MVRdata_R_MG_emg),]
-MGhvbyhplot_both<-MGhvbyhplot_submerge+geom_point(data=MVRdata_R_MG_emg,aes(x=alpha,y=R),shape=0)+
-  geom_vline(xintercept=1.0,linetype="dotted",color="red")+
-  geom_point(data=MVRdata_R_MG_out,aes(x=alpha,y=R),shape=0) #Add back outlier point
-MGhvbyhplot_both
-
-#B/L
-MVRdata_R_mg_out<-mgdata[c("Habitat","HsC","HsT","R","X")]
-MVRdata_R_mg_out<-MVRdata_R_mg_out[complete.cases(MVRdata_R_mg_out),]
-MVRdata_R_mg_out<-subset(MVRdata_R_mg_out, MVRdata_R_mg_out$X>50)
-MVRdata_R_mg<-mgdata_noXoutlier[c("Habitat","HsC","HsT","R","X")]
-MVRdata_R_mg<-MVRdata_R_mg[complete.cases(MVRdata_R_mg),]
-MVRdata_R_mg_glm<-lm(R~X, MVRdata_R_mg)
-summary(MVRdata_R_mg_glm) 
-mgBbyLplot<-ggplot(data=MVRdata_R_mg)+geom_point(aes(x=X,y=R),shape=0)+
-  labs(title="Mangroves",x="Relative Width, B/L",y="Wave Attenuation %")+
-  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(0,1))+
-  geom_smooth(data=MVRdata_R_mg,aes(x=X,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=10,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_mg_glm)$adj.r.squared, digits=4)),parse=TRUE)+
-  geom_point(data=MVRdata_R_mg_out,aes(x=X,y=R),shape=0) #Add back outlier point
-mgBbyLplot
-
-#MARSHES
-#H/h
-MVRdata_R_SM<-smdata[c("Habitat","HsC","HsT","R", "Hbyh")]
-MVRdata_R_SM<-MVRdata_R_SM[complete.cases(MVRdata_R_SM),]
-MVRdata_R_SM_glm<-lm(R~Hbyh, MVRdata_R_SM)
-summary(MVRdata_R_SM_glm) 
-SMHbyhplot<-ggplot(data=MVRdata_R_SM)+geom_point(aes(x=Hbyh,y=R),shape=0)+
-  labs(title="Salt-Marshes",x="Relative wave height, H/h",y="Wave Attenuation %")+
-  theme_bw()+geom_smooth(data=MVRdata_R_SM,aes(x=Hbyh,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=0.15,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_SM_glm)$adj.r.squared, digits=4)),parse=TRUE)
-SMHbyhplot
-
-#hv/h
-MVRdata_R_SM_all<-smdata[c("Habitat","HsC","HsT","R","alpha")]
-MVRdata_R_SM_all<-MVRdata_R_SM_all[complete.cases(MVRdata_R_SM_all),]
-MVRdata_R_SM_sub<-smdata_submerge[c("Habitat","HsC","HsT","R","alpha")]
-MVRdata_R_SM_sub<-MVRdata_R_SM_sub[complete.cases(MVRdata_R_SM_sub),]
-MVRdata_R_SM_out<-subset(MVRdata_R_SM_sub, MVRdata_R_SM_sub$alpha<0.1)
-MVRdata_R_SM_sub<-subset(MVRdata_R_SM_sub, MVRdata_R_SM_sub$alpha>0.1) ## Caution! Removing outlier!
-MVRdata_R_SM_glm_sub<-lm(R~alpha, MVRdata_R_SM_sub)
-summary(MVRdata_R_SM_glm_sub) 
-SMhvbyhplot_submerge<-ggplot(data=MVRdata_R_SM_sub)+geom_point(aes(x=alpha,y=R),shape=8)+
-  labs(title="Salt-Marshes",x="Relative vegetation height, hv/h",y="Wave Attenuation %")+
-  theme_bw()+geom_smooth(data=MVRdata_R_SM_sub,aes(x=alpha,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=0.7,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_SM_glm_sub)$adj.r.squared, digits=4)),parse=TRUE)
-SMhvbyhplot_submerge
-MVRdata_R_SM_emg<-smdata_emerge[c("Habitat","HsC","HsT","R","alpha")]
-MVRdata_R_SM_emg<-MVRdata_R_SM_emg[complete.cases(MVRdata_R_SM_emg),]
-SMhvbyhplot_both<-SMhvbyhplot_submerge+geom_point(data=MVRdata_R_SM_emg,aes(x=alpha,y=R),shape=8)+
-  geom_vline(xintercept=1,linetype="dotted",color="red")+
-  geom_point(data=MVRdata_R_SM_out,aes(x=alpha,y=R),shape=8) #Add back outlier point
-SMhvbyhplot_both
-
-#B/L
-MVRdata_R_SM<-smdata[c("Habitat","HsC","HsT","R","X")]
-MVRdata_R_SM<-MVRdata_R_SM[complete.cases(MVRdata_R_SM),]
-MVRdata_R_SM_glm<-lm(R~X, MVRdata_R_SM)
-summary(MVRdata_R_SM_glm) 
-SMBbyLplot<-ggplot(data=MVRdata_R_SM)+geom_point(aes(x=X,y=R),shape=0)+
-  labs(title="Salt-Marshes",x="Relative Width, B/L",y="Wave Attenuation %")+
-  theme_bw()+geom_smooth(data=MVRdata_R_SM,aes(x=X,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=10,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_SM_glm)$adj.r.squared, digits=4)),parse=TRUE)
-SMBbyLplot
-
-#SEAGRASS/KELP
-#H/h
-MVRdata_R_SG<-sgdata[c("Habitat","HsC","HsT","R", "Hbyh")]
-MVRdata_R_SG<-MVRdata_R_SG[complete.cases(MVRdata_R_SG),]
-MVRdata_R_SG_glm<-lm(R~Hbyh, MVRdata_R_SG)
-summary(MVRdata_R_SG_glm) 
-SGHbyhplot<-ggplot(data=MVRdata_R_SG)+geom_point(aes(x=Hbyh,y=R),shape=0)+
-  labs(title="Seagrass/Kelp",x="Relative wave height, H/h",y="Wave Attenuation %")+
-  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(0,1))+
-  geom_smooth(data=MVRdata_R_SG,aes(x=Hbyh,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=0.15,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_SG_glm)$adj.r.squared, digits=4)),parse=TRUE)
-SGHbyhplot
-
-#hv/h
-MVRdata_R_SG<-sgdata[c("Habitat","HsC","HsT","R","alpha")]
-MVRdata_R_SG<-MVRdata_R_SG[complete.cases(MVRdata_R_SG),]
-MVRdata_R_SG_glm<-lm(R~alpha, MVRdata_R_SG)
-summary(MVRdata_R_SG_glm) 
-SGhvbyhplot<-ggplot(data=MVRdata_R_SG)+geom_point(aes(x=alpha,y=R),shape=0)+
-  labs(title="Seagrass/Kelp",x="Relative vegetation height, hv/h",y="Wave Attenuation %")+
-  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(0,1))+
-  geom_smooth(data=MVRdata_R_SG,aes(x=alpha,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=0.7,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_SG_glm)$adj.r.squared, digits=4)),parse=TRUE)
-SGhvbyhplot
-
-#B/L
-MVRdata_R_SG<-sgdata[c("Habitat","HsC","HsT","R","X")]
-MVRdata_R_SG<-MVRdata_R_SG[complete.cases(MVRdata_R_SG),]
-MVRdata_R_SG_glm<-lm(R~X, MVRdata_R_SG)
-summary(MVRdata_R_SG_glm) 
-SGBbyLplot<-ggplot(data=MVRdata_R_SG)+geom_point(aes(x=X,y=R),shape=0)+
-  labs(title="Seagrass/Kelp",x="Relative Width, B/L",y="Wave Attenuation %")+
-  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(0,1))+
-  geom_smooth(data=MVRdata_R_SG,aes(x=X,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=10,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_SG_glm)$adj.r.squared, digits=4)),parse=TRUE)
-SGBbyLplot
-
-grid.arrange(REEFHbyhplot, MGHbyhplot,SMHbyhplot,SGHbyhplot,ncol=2)
-grid.arrange(MGhvbyhplot,SMhvbyhplot,nrow=2)
-grid.arrange(REEFBbyLplot, MGBbyLplot,SMBbyLplot,SGBbyLplot,ncol=2)
-grid.arrange(REEFHbyhplot, main,SMhvbyhplot_both_outadd,ncol=2)
-
-## Variable Transformations For Absolute and Percentage Reduction Extents vs Incoming Hs (Excluding All HsC = 1)
+## Hs Reduction Versus Incoming Hs Plots
+#Variable Transformations For Absolute and Percentage Reduction Extents vs Incoming Hs (Excluding All HsC = 1)
 wvdata<-subset(alldata,alldata$HsC!=1)
 reefdata<-wvdata[grep("CR",wvdata$Habitat),] # grep() subsets data frame by rows based on a char variable
 vegdata=wvdata[grep("MG|SM|SG", wvdata$Habitat),]
@@ -722,7 +532,7 @@ sm_HsC_lm_Abs<-lm((smdata$HsC - smdata$HsT)~smdata$HsC)
 sg_HsC_lm_Abs<-lm((sgdata$HsC - sgdata$HsT)~sgdata$HsC)
 MGHsplot_Abs<-HsC_abs_plot(mgdata,"Mangroves",0,0.12,0.31,0.24,0.305,mg_HsC_lm_Abs)
 SMHsplot_Abs<-HsC_abs_plot(smdata,"Salt-Marshes",5,0.14,0.62,0.44,0.61,sm_HsC_lm_Abs)
-SGHsplot_Abs<-HsC_abs_plot(sgdata,"Salt-Marshes",8,0.15,0.46,0.45,0.45,sg_HsC_lm_Abs)
+SGHsplot_Abs<-HsC_abs_plot(sgdata,"Seagrass/Kelp",8,0.15,0.46,0.45,0.45,sg_HsC_lm_Abs)
 
 # Relative Hs Plots
 #Reefs
@@ -747,3 +557,136 @@ SGHsplot<-HsC_rel_plot(sgdata,"Salt-Marshes",8)
 
 grid.arrange(CRHsplot_Abs,MGHsplot_Abs,SMHsplot_Abs,SGHsplot_Abs,ncol=2)
 grid.arrange(CRHsplot,MGHsplot,SMHsplot,SGHsplot,ncol=2)
+
+## DIMENSIONLESS PARAMETER PLOTS BY HABITAT
+
+#B/L
+wvdata<-subset(alldata,alldata$HsC!=-999)
+#Reefs
+reefdata<-wvdata[grep("CR",wvdata$Habitat),] # grep() subsets data frame by rows based on a char variable
+MVRdata_R_reef_all<-reefdata[c("Habitat","HsC","HsT","R","X")]
+MVRdata_R_reef_all<-MVRdata_R_reef_all[complete.cases(MVRdata_R_reef_all),]
+MVRdata_R_reef_out<-subset(MVRdata_R_reef_all, MVRdata_R_reef_all$X>50)
+MVRdata_R_reef<-reefdata_noXoutlier[c("Habitat","HsC","HsT","R","X")]
+MVRdata_R_reef<-MVRdata_R_reef[complete.cases(MVRdata_R_reef),]
+nls_reef_BbyL<-nls(R~a*log(X)+b,MVRdata_R_reef,start=list(a=0.1,b=0.01))
+nls_R2_reef_BbyL<-1-sum(residuals(nls_reef_BbyL)^2)/sum(MVRdata_R_reef$R - mean(MVRdata_R_reef$R)^2)
+sub<-ggplot(data=MVRdata_R_reef_all, group=Habitat)+geom_point(aes(x=X,y=R,shape=Habitat))+
+  geom_rect(data=MVRdata_R_reef_all$BbyL, xmin=0, xmax=20,ymin=-0.2, ymax=1,fill="light blue",alpha=0.7)+
+  theme_bw()+theme(legend.position="none")+labs(x="B/L",y="Wave Reduction %")
+sub$layers<-rev(sub$layers)
+REEFBbyLplot<-ggplot(data=MVRdata_R_reef, group=Habitat)+geom_point(aes(x=X,y=R,shape=Habitat))+
+  labs(title="Reefs",x="Relative Width, B/L",y="Wave Reduction %")+scale_shape_manual("Reef Environment",values=c(2,4,3),labels=c("Crest","Flat","Whole Reef"))+
+  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(1,0))+
+  geom_smooth(data=MVRdata_R_reef,aes(x=X,y=R),method=nls,formula=y~I(a*log(x)+b),start=list(a=0.1,b=0.01),se=FALSE,linetype=2,colour="black")+
+  annotate('text',x=8,y=0.6,label=paste("R^2==",format(nls_R2_reef_BbyL, digits=4)),parse=TRUE)+
+  annotation_custom(ggplotGrob(sub),xmin=3,xmax=10,ymin=-0.2,ymax=0.3)
+
+grid.arrange(REEFHbyhplot,REEFBbyLplot,ncol=2)
+
+#Others
+BbyLplot<-function(plotdata,Shapedata,Title)
+{
+  ggplot(data=plotdata)+geom_point(aes(x=X,y=R),shape=Shapedata)+
+    labs(title=Title,x="Relative Width, B/L",y="Wave Attenuation %")+theme_bw()
+}
+
+MGBbyLplot<-BbyLplot(mgdata,0,"Mangroves")
+SMBbyLplot<-BbyLplot(smdata,5,"Salt-Marshes")
+SGBbyLplot<-BbyLplot(sgdata,8,"Seagrass/Kelp")
+
+grid.arrange(REEFBbyLplot, MGBbyLplot,SMBbyLplot,SGBbyLplot,ncol=2)
+
+#H/h
+wvdata<-subset(alldata,alldata$HsC!=1)
+#Reefs
+reefdata<-wvdata[grep("CR",wvdata$Habitat),] # grep() subsets data frame by rows based on a char variable
+MVRdata_R_REEF<-reefdata[c("Habitat","HsC","HsT","R", "Hbyh")]
+MVRdata_R_REEF<-MVRdata_R_REEF[complete.cases(MVRdata_R_REEF),]
+nls_reef_Hbyh<-nls(R~a*log(Hbyh)+b,MVRdata_R_REEF,start=list(a=0.1,b=0.01))
+nls_R2_reef_Hbyh<-1-sum(residuals(nls_reef_Hbyh)^2)/sum(MVRdata_R_REEF$R - mean(MVRdata_R_REEF$R)^2)
+REEFHbyhplot<-ggplot(data=MVRdata_R_REEF, group=Habitat)+geom_point(aes(x=Hbyh,y=R,shape=Habitat))+
+  labs(title="Reefs",x="Relative wave height, H/h",y="Wave Attenuation %")+scale_shape_manual("Reef Environment",values=c(2,4,3),labels=c("Crest","Flat","Whole Reef"))+
+  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(1,0))+
+  geom_smooth(data=MVRdata_R_REEF,aes(x=Hbyh,y=R),method=nls,formula=y~I(a*log(x)+b),se=FALSE,start=list(a=0.1,b=0.01), linetype=2,colour="black")+
+  annotate('text',x=1.5,y=0.6,label=paste("R^2==",format(nls_R2_reef_Hbyh, digits=4)),parse=TRUE)+
+geom_vline(xintercept=0.78, linetype="dotted", color="red")
+
+#Others
+Hbyhplot<-function(plotdata,Shapedata,Title)
+{
+  ggplot(data=plotdata)+geom_point(aes(x=Hbyh,y=R),shape=Shapedata)+
+    labs(title=Title,x="Relative wave height, H/h",y="Wave Attenuation %")+theme_bw()
+}
+
+MGHbyhplot<-Hbyhplot(mgdata,0,"Mangroves")
+SMHbyhplot<-Hbyhplot(smdata,5,"Salt-Marshes")
+SGHbyhplot<-Hbyhplot(sgdata,8,"Seagrass/Kelp")
+
+grid.arrange(REEFHbyhplot, MGHbyhplot,SMHbyhplot,SGHbyhplot,ncol=2)
+
+#hv/h Plots
+#MANGROVES
+MVRdata_R_MG_sub<-mgdata_submerge[c("Habitat","HsC","HsT","R","alpha")]
+MVRdata_R_MG_sub<-MVRdata_R_MG_sub[complete.cases(MVRdata_R_MG_sub),]
+MVRdata_R_MG_out<-subset(MVRdata_R_MG_sub, MVRdata_R_MG_sub$alpha<0.5)
+MVRdata_R_MG_sub<-subset(MVRdata_R_MG_sub, MVRdata_R_MG_sub$alpha>0.5) ## Caution! Removing outlier!
+MVRdata_R_MG_glm_sub<-lm(R~alpha, MVRdata_R_MG_sub)
+summary(MVRdata_R_MG_glm_sub) 
+MGhvbyhplot_submerge<-ggplot(data=MVRdata_R_MG_sub)+geom_point(aes(x=alpha,y=R),shape=0)+
+  labs(title="Mangroves",x="Relative vegetation height, hv/h",y="Wave Attenuation %")+
+  theme_bw()+geom_smooth(data=MVRdata_R_MG_sub,aes(x=alpha,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
+  annotate('text',x=0.7,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_MG_glm_sub)$adj.r.squared, digits=4)),parse=TRUE)
+MGhvbyhplot_submerge
+MVRdata_R_MG_emg<-mgdata_emerge[c("Habitat","HsC","HsT","R","alpha")]
+MVRdata_R_MG_emg<-MVRdata_R_MG_emg[complete.cases(MVRdata_R_MG_emg),]
+MGhvbyhplot_both<-MGhvbyhplot_submerge+geom_point(data=MVRdata_R_MG_emg,aes(x=alpha,y=R),shape=0)+
+  geom_vline(xintercept=1.0,linetype="dotted",color="red")+
+  geom_point(data=MVRdata_R_MG_out,aes(x=alpha,y=R),shape=0) #Add back outlier point
+MGhvbyhplot_both
+
+#MARSHES
+MVRdata_R_SM_all<-smdata[c("Habitat","HsC","HsT","R","alpha")]
+MVRdata_R_SM_all<-MVRdata_R_SM_all[complete.cases(MVRdata_R_SM_all),]
+MVRdata_R_SM_sub<-smdata_submerge[c("Habitat","HsC","HsT","R","alpha")]
+MVRdata_R_SM_sub<-MVRdata_R_SM_sub[complete.cases(MVRdata_R_SM_sub),]
+MVRdata_R_SM_out<-subset(MVRdata_R_SM_sub, MVRdata_R_SM_sub$alpha<0.1)
+MVRdata_R_SM_sub<-subset(MVRdata_R_SM_sub, MVRdata_R_SM_sub$alpha>0.1) ## Caution! Removing outlier!
+MVRdata_R_SM_glm_sub<-lm(R~alpha, MVRdata_R_SM_sub)
+summary(MVRdata_R_SM_glm_sub) 
+SMhvbyhplot_submerge<-ggplot(data=MVRdata_R_SM_sub)+geom_point(aes(x=alpha,y=R),shape=8)+
+  labs(title="Salt-Marshes",x="Relative vegetation height, hv/h",y="Wave Attenuation %")+
+  theme_bw()+geom_smooth(data=MVRdata_R_SM_sub,aes(x=alpha,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
+  annotate('text',x=0.7,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_SM_glm_sub)$adj.r.squared, digits=4)),parse=TRUE)
+SMhvbyhplot_submerge
+MVRdata_R_SM_emg<-smdata_emerge[c("Habitat","HsC","HsT","R","alpha")]
+MVRdata_R_SM_emg<-MVRdata_R_SM_emg[complete.cases(MVRdata_R_SM_emg),]
+SMhvbyhplot_both<-SMhvbyhplot_submerge+geom_point(data=MVRdata_R_SM_emg,aes(x=alpha,y=R),shape=8)+
+  geom_vline(xintercept=1,linetype="dotted",color="red")+
+  geom_point(data=MVRdata_R_SM_out,aes(x=alpha,y=R),shape=8) #Add back outlier point
+SMhvbyhplot_both
+
+#SEAGRASS/KELP
+MVRdata_R_SG<-sgdata[c("Habitat","HsC","HsT","R","alpha")]
+MVRdata_R_SG<-MVRdata_R_SG[complete.cases(MVRdata_R_SG),]
+MVRdata_R_SG_glm<-lm(R~alpha, MVRdata_R_SG)
+summary(MVRdata_R_SG_glm) 
+SGhvbyhplot<-ggplot(data=MVRdata_R_SG)+geom_point(aes(x=alpha,y=R),shape=0)+
+  labs(title="Seagrass/Kelp",x="Relative vegetation height, hv/h",y="Wave Attenuation %")+
+  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(0,1))+
+  geom_smooth(data=MVRdata_R_SG,aes(x=alpha,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
+  annotate('text',x=0.7,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_SG_glm)$adj.r.squared, digits=4)),parse=TRUE)
+SGhvbyhplot
+
+grid.arrange(MGhvbyhplot,SMhvbyhplot,nrow=2)
+
+# # ALL-HABITAT PLOTS
+# # B vs Wave Attn
+# nls_allB<-nls(R~I(a*log(B)+b),data=wvdata,start=list(a=0.01,b=0.1))
+# nls_allB_R2<-1-sum(residuals(nls_allB)^2)/sum((wvdata$R - mean(wvdata$R))^2)
+# allBplot<-ggplot(data=wvdata, group=HabitatGrp)+geom_point(aes(x=B,y=R,shape=HabitatGrp))+
+#   labs(x="Habitat Width (m)",y="Wave Reduction %")+scale_shape_manual("Habitat", values=c(2,0,8,5),labels=c("Reef","Mangrove","Seagrass/Kelp","Salt-Marsh"))+
+#   theme_bw()+theme(legend.position=c(1,0),legend.justification=c(1,0))+
+#   geom_smooth(data=wvdata,aes(x=B,y=R),method="nls",formula=y~I(a*log(x)+b),start=list(a=0.1,b=0.01),se=FALSE,linetype=2,colour="black")+
+#   scale_y_continuous(labels=function(x)x*100)+annotate('text',x=3000,y=0.15,label=paste("R^2==",format(nls_allB_R2, digits=4)),parse=TRUE)
+# allBplot
