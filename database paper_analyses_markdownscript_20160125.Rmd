@@ -12,7 +12,7 @@ This document details the database analyses steps for each habitat (reefs, mangr
 
 # Script
 ## Libraries
-```{r LIbraries, results='hide', message=FALSE,warning=FALSE}
+```{r Libraries, results='hide', message=FALSE,warning=FALSE}
 library(ggplot2)
 library(relaimpo)
 library(rgdal)
