@@ -697,67 +697,53 @@ smdata_emerge<-subset(smdata, smdata$alpha>1)
 reefdata_noXoutlier<-subset(reefdata, reefdata$X<50)
 mgdata_noXoutlier<-subset(mgdata, mgdata$X<50)
 
+#Absolute Hs Plots
+# Reefs
 reef_HsC_lm_Abs<-lm((reefdata$HsC - reefdata$HsT)~reefdata$HsC)
 CRHsplot_Abs<-ggplot(data=reefdata,group=Habitat)+geom_point(aes(x=HsC,y=(HsC-HsT),shape=Habitat))+
-  labs(title="Reefs",x="",y="Absolute Wave Attenuation (Hsc - HsT) (m)")+scale_shape_manual("Reef Environment",values=c(2,4,3),labels=c("Crest","Flat","Whole Reef"))+
+  labs(title="Reefs",x="Incoming Wave Height, HsC (m)",y="Absolute Wave Attenuation (Hsc - HsT) (m)")+scale_shape_manual("Reef Environment",values=c(2,4,3),labels=c("Crest","Flat","Whole Reef"))+
   theme_bw()+theme(legend.position=c(0,1), legend.justification=c(0,1))+
   geom_smooth(data=reefdata,aes(x=HsC,y=HsC-HsT),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
   annotate('text',x=1.05,y=1.7,label=paste("R^2==",format(summary(reef_HsC_lm_Abs)$adj.r.squared, digits=4)),parse=TRUE)+
   annotate('text',x=1.65,y=1.67,label=paste("slope==",format(summary(reef_HsC_lm_Abs)$coefficients[2,1], digits=4)),parse=TRUE)
-CRHsplot_Abs
 
+#Others
+HsC_abs_plot<-function(plotdata,Title,Shapedata,r2_x,r2_y,slope_x,slope_y,lmdata)
+{
+  ggplot(data=plotdata)+geom_point(aes(x=HsC,y=(HsC-HsT)),shape=Shapedata)+
+    labs(title=Title,x="Incoming Wave Height, HsC (m)",y="Absolute Wave Attenuation (Hsc - HsT) (m)")+
+    theme_bw()+geom_smooth(data=plotdata,aes(x=HsC,y=HsC-HsT),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
+    annotate('text',x=r2_x,y=r2_y,label=paste("R^2==",format(summary(mg_HsC_lm_Abs)$adj.r.squared, digits=4)),parse=TRUE)+
+    annotate('text',x=slope_x,y=slope_y,label=paste("slope==",format(summary(lmdata)$coefficients[2,1], digits=4)),parse=TRUE)
+  
+}
 mg_HsC_lm_Abs<-lm((mgdata$HsC - mgdata$HsT)~mgdata$HsC)
-MGHsplot_Abs<-ggplot(data=mgdata)+geom_point(aes(x=HsC,y=(HsC-HsT)),shape=0)+
-  labs(title="Mangroves",x="",y="Absolute Wave Attenuation (Hsc - HsT) (m)")+
-  theme_bw()+geom_smooth(data=mgdata,aes(x=HsC,y=HsC-HsT),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=0.12,y=0.31,label=paste("R^2==",format(summary(mg_HsC_lm_Abs)$adj.r.squared, digits=4)),parse=TRUE)+
-  annotate('text',x=0.24,y=0.305,label=paste("slope==",format(summary(mg_HsC_lm_Abs)$coefficients[2,1], digits=4)),parse=TRUE)
-MGHsplot_Abs
-
 sm_HsC_lm_Abs<-lm((smdata$HsC - smdata$HsT)~smdata$HsC)
-SMHsplot_Abs<-ggplot(data=smdata)+geom_point(aes(x=HsC,y=(HsC-HsT)),shape=5)+
-  labs(title="Salt-Marsh",x="Incoming Wave Height, HsC (m)",y="Absolute Wave Attenuation (Hsc - HsT) (m)")+
-  theme_bw()+geom_smooth(data=smdata,aes(x=HsC,y=HsC-HsT),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=0.14,y=0.62,label=paste("R^2==",format(summary(sm_HsC_lm_Abs)$adj.r.squared, digits=4)),parse=TRUE)+
-  annotate('text',x=0.44,y=0.61,label=paste("slope==",format(summary(sm_HsC_lm_Abs)$coefficients[2,1], digits=4)),parse=TRUE)
-SMHsplot_Abs
-
 sg_HsC_lm_Abs<-lm((sgdata$HsC - sgdata$HsT)~sgdata$HsC)
-SGHsplot_Abs<-ggplot(data=sgdata)+geom_point(aes(x=HsC,y=(HsC-HsT)),shape=8)+
-  labs(title="Seagrass/Kelp",x="Incoming Wave Height, HsC (m)",y="Absolute Wave Attenuation (Hsc - HsT) (m)")+
-  theme_bw()+geom_smooth(data=sgdata,aes(x=HsC,y=HsC-HsT),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=0.15,y=0.46,label=paste("R^2==",format(summary(sg_HsC_lm_Abs)$adj.r.squared, digits=4)),parse=TRUE)+
-  annotate('text',x=0.45,y=0.45,label=paste("slope==",format(summary(sg_HsC_lm_Abs)$coefficients[2,1], digits=4)),parse=TRUE)
-SGHsplot_Abs
+MGHsplot_Abs<-HsC_abs_plot(mgdata,"Mangroves",0,0.12,0.31,0.24,0.305,mg_HsC_lm_Abs)
+SMHsplot_Abs<-HsC_abs_plot(smdata,"Salt-Marshes",5,0.14,0.62,0.44,0.61,sm_HsC_lm_Abs)
+SGHsplot_Abs<-HsC_abs_plot(sgdata,"Salt-Marshes",8,0.15,0.46,0.45,0.45,sg_HsC_lm_Abs)
 
+# Relative Hs Plots
+#Reefs
 reef_HsC_lm<-lm(R~HsC, reefdata)
 nls_reef_H<-nls(R~a*log(HsC)+b,reefdata,start=list(a=0.1,b=0.01))
 nls_R2_reef_H<-1-sum(residuals(nls_reef_H)^2)/sum((reefdata$R - mean(reefdata$R))^2)
 CRHsplot<-ggplot(data=reefdata,group=Habitat)+geom_point(aes(x=HsC,y=R,shape=Habitat))+
-  labs(title="Reefs",x="",y="Wave Reduction %")+scale_shape_manual("Reef Environment",values=c(2,4,3),labels=c("Crest","Flat","Whole Reef"))+
+  labs(title="Reefs",x="Incoming Wave Height, HsC (m)",y="Wave Reduction %")+scale_shape_manual("Reef Environment",values=c(2,4,3),labels=c("Crest","Flat","Whole Reef"))+
   theme_bw()+theme(legend.position=c(1,0), legend.justification=c(1,0))+
   geom_smooth(data=reefdata,aes(x=HsC,y=R),method="nls",formula=y~I(a*log(x)+b),se=FALSE,start=list(a=0.1,b=0.01),linetype=2,colour="black")
-#   scale_y_continuous(labels=function(x)x*100)+annotate('text',x=1.6,y=0.47,label=paste("R^2==",format(nls_R2_reef_H, digits=4)),parse=TRUE)+
-#   annotate('text',x=1.65,y=0.67,label=paste("slope==",format(nls_R2_reef_H, digits=4)),parse=TRUE)
-CRHsplot
 
-mg_HsC_lm<-lm(R~HsC, mgdata)
-MGHsplot<-ggplot(data=mgdata)+geom_point(aes(x=HsC,y=R),shape=0)+
-  labs(title="Mangroves",x="",y="Wave Reduction %")+
-  theme_bw()+scale_y_continuous(labels=function(x)x*100)
-MGHsplot
-
-sm_HsC_lm<-lm(R~HsC, smdata)
-SMHsplot<-ggplot(data=smdata)+geom_point(aes(x=HsC,y=R),shape=5)+
-  labs(title="Salt-Marsh",x="Incoming Wave Height, HsC (m)",y="Wave Reduction %")+
-  theme_bw()+scale_y_continuous(labels=function(x)x*100)
-SMHsplot
-
-sg_HsC_lm<-lm(R~HsC, sgdata)
-SGHsplot<-ggplot(data=sgdata)+geom_point(aes(x=HsC,y=R),shape=8)+
-  labs(title="Seagrass/Kelp",x="Incoming Wave Height, HsC (m)",y="Wave Reduction %")+
-  theme_bw()+scale_y_continuous(labels=function(x)x*100)
-SGHsplot
+#Others
+HsC_rel_plot<-function(plotdata,Title,Shapedata)
+{
+  ggplot(data=plotdata)+geom_point(aes(x=HsC,y=R),shape=Shapedata)+
+    labs(title=Title,x="Incoming Wave Height, HsC (m)",y="Wave Reduction %")+
+    theme_bw()+scale_y_continuous(labels=function(x)x*100)
+}
+MGHsplot<-HsC_rel_plot(mgdata,"Mangroves",0)
+SMHsplot<-HsC_rel_plot(smdata,"Salt-Marshes",5)
+SGHsplot<-HsC_rel_plot(sgdata,"Salt-Marshes",8)
 
 grid.arrange(CRHsplot_Abs,MGHsplot_Abs,SMHsplot_Abs,SGHsplot_Abs,ncol=2)
 grid.arrange(CRHsplot,MGHsplot,SMHsplot,SGHsplot,ncol=2)
