@@ -263,28 +263,28 @@ struct_comparison<-struct_comparison %>%
     ) %>%
   ungroup() # Remember to ungroup!
 
-struct_comparison_mg=subset(struct_comparison, struct_comparison$Habitat=="Mangrove")
-RC_mean_mg<-mean(struct_comparison_mg$RCratio)
-RC_sd_mg<-sd(struct_comparison_mg$RCratio)
-RC_margin_mg<-qt(0.975,length(struct_comparison_mg$RCratio)-1)*RC_sd_mg/sqrt(length(struct_comparison_mg$RCratio))
-RC_upper_mg<-RC_mean_mg+RC_margin_mg
-RC_lower_mg<-max(RC_mean_mg-RC_margin_mg, min(struct_comparison_mg$RCratio))
-
-struct_comparison_sm=subset(struct_comparison, struct_comparison$Habitat=="Salt_Marsh")
-RC_mean_sm<-mean(struct_comparison_sm$RCratio)
-RC_sd_sm<-sd(struct_comparison_sm$RCratio)
-RC_margin_sm<-qt(0.975,length(struct_comparison_sm$RCratio)-1)*RC_sd_sm/sqrt(length(struct_comparison_sm$RCratio))
-RC_upper_sm<-RC_mean_sm+RC_margin_sm
-RC_lower_sm<-max(RC_mean_sm-RC_margin_sm, min(struct_comparison_sm$RCratio))
-
-RCvals=data.frame(matrix(NA,ncol=5,nrow=2))
-colnames(RCvals)<-c("Habitat","Mean","Margin","95% CI Upper", "95% CI Lower")
-RCvals[1:2,1]<-c("Mangrove","Salt_Marsh")
-RCvals[1:2,2]<-c(RC_mean_mg,RC_mean_sm)
-RCvals[1:2,3]<-c(RC_margin_mg,RC_margin_sm)
-RCvals[1:2,4]<-c(RC_upper_mg,RC_upper_sm)
-RCvals[1:2,5]<-c(RC_lower_mg,RC_lower_sm)
-RCvals
+# struct_comparison_mg=subset(struct_comparison, struct_comparison$Habitat=="Mangrove")
+# RC_mean_mg<-mean(struct_comparison_mg$RCratio)
+# RC_sd_mg<-sd(struct_comparison_mg$RCratio)
+# RC_margin_mg<-qt(0.975,length(struct_comparison_mg$RCratio)-1)*RC_sd_mg/sqrt(length(struct_comparison_mg$RCratio))
+# RC_upper_mg<-RC_mean_mg+RC_margin_mg
+# RC_lower_mg<-max(RC_mean_mg-RC_margin_mg, min(struct_comparison_mg$RCratio))
+# 
+# struct_comparison_sm=subset(struct_comparison, struct_comparison$Habitat=="Salt_Marsh")
+# RC_mean_sm<-mean(struct_comparison_sm$RCratio)
+# RC_sd_sm<-sd(struct_comparison_sm$RCratio)
+# RC_margin_sm<-qt(0.975,length(struct_comparison_sm$RCratio)-1)*RC_sd_sm/sqrt(length(struct_comparison_sm$RCratio))
+# RC_upper_sm<-RC_mean_sm+RC_margin_sm
+# RC_lower_sm<-max(RC_mean_sm-RC_margin_sm, min(struct_comparison_sm$RCratio))
+# 
+# RCvals=data.frame(matrix(NA,ncol=5,nrow=2))
+# colnames(RCvals)<-c("Habitat","Mean","Margin","95% CI Upper", "95% CI Lower")
+# RCvals[1:2,1]<-c("Mangrove","Salt_Marsh")
+# RCvals[1:2,2]<-c(RC_mean_mg,RC_mean_sm)
+# RCvals[1:2,3]<-c(RC_margin_mg,RC_margin_sm)
+# RCvals[1:2,4]<-c(RC_upper_mg,RC_upper_sm)
+# RCvals[1:2,5]<-c(RC_lower_mg,RC_lower_sm)
+# RCvals
 
 Kt_All<-struct_comparison %>%
   distinct(Proj_depth,Proj_width) %>%
@@ -368,7 +368,7 @@ struceffcostvals[1:2,4]=c(mg_struc_maxunitcost_mean+mg_struc_maxunitcost_margin,
 struceffcostvals
 
 ##########Cost Curve Plots ###################
-costcurveplot<-ggplot()+scale_linetype_identity()+
+costcurveplot_All<-ggplot()+scale_linetype_identity()+
   geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.2_Bc2,linetype="solid"),show_guide=TRUE)+
   geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.75_Hs0.2_Bc2,linetype="1F"),show_guide=TRUE)+
   geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.2_Bc2/10,linetype="longdash"),show_guide=TRUE)+
@@ -382,29 +382,36 @@ costcurveplot<-ggplot()+scale_linetype_identity()+
   guides(linetype=guide_legend(order=1))+
   guides(colour=guide_legend(order=2, override.aes=list(linetype=c(0,0)),fill="NA"))+
   guides(size=guide_legend(order=4,override.aes=list(linetype=c(0,0,0))))
-costcurveplot
+costcurveplot_All
 
-costcurveplot_Mangrove<-ggplot()+scale_linetype_identity()+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.2_Bc2/10,linetype="solid"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.2_Bc2/10,linetype="1F"),show_guide=TRUE)+
-#   geom_ribbon(aes(x=Kt_Struc$Proj_depth,ymax=Kt_Struc$StrucCost0.05_Hs0.3_Bc2/10,ymin=Kt_Struc$StrucCost0.05_Hs0.1_Bc2/10),alpha=0.6,fill="blue1")+
-#   geom_ribbon(aes(x=Kt_Struc$Proj_depth,ymax=Kt_Struc$StrucCost0.75_Hs0.1_Bc2/10,ymin=Kt_Struc$StrucCost0.75_Hs0.3_Bc2/10),alpha=0.6,fill="tomato2")+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.3_Bc2/10,linetype="longdash"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.3_Bc2/10,linetype="dotted"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.1_Bc2/10,linetype="longdash"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.1_Bc2/10,linetype="dotted"),show_guide=TRUE)+  
-  geom_point(data=Kt_Mangrove, aes(Kt_Mangrove$Proj_depth,Kt_Mangrove$Proj_cost_per_m, size=Kt_Mangrove$Proj_width),shape=1)+
-  geom_text(data=subset(Kt_Mangrove[c(1:2,4,6:7),]),aes(Proj_depth,Proj_cost_per_m,label=paste(round(Proj_R_Total,digits=0),"%",sep="")),size=3,hjust=1,vjust=0)+
-#   scale_linetype_manual("Structure wave reduction %",values=c(2,1),labels=c("solid"="100(Hs=0.2)","1F"="25(Hs=0.2)"))+
-  scale_linetype_manual("Structure wave reduction %",values=c(5,3,2,1),labels=c("solid"="100(Hs=0.2)","1F"="25(Hs=0.2)","longdash"="100(Hs=0.3/0.1)","dotted"="25(Hs=0.3/0.1)"))+
-  scale_size_continuous("Project Width",range=c(5,11),breaks=c(800,1200,1500,1600))+
-#   scale_colour_manual("Habitat",values=c("green"),labels=c("Mangrove"))+
-  coord_cartesian(xlim=c(1,1.75),ylim=c(0,1000))+
-  theme_bw()+labs(title="Mangrove Habitat and Replacement Structure Costs",x="Depth (m)",y="Cost per m coastline (US $)")+
-  guides(linetype=guide_legend(order=1))+
-  guides(colour=guide_legend(order=2, override.aes=list(linetype=c(0)),fill="NA"))+
-  guides(size=guide_legend(order=3,override.aes=list(linetype=c(0,0,0))))
-costcurveplot_Mangrove
+# costcurveplot<-function(costfactor, plotdata, textdata,breakdata,coord_xlim,coord_ylim,Title,override_colour_aes,override_size_aes)
+# {
+#   ggplot()+scale_linetype_identity()+
+#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.2_Bc2/costfactor,linetype="solid"),show_guide=TRUE)+
+#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.2_Bc2/costfactor,linetype="1F"),show_guide=TRUE)+
+#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.3_Bc2/costfactor,linetype="longdash"),show_guide=TRUE)+
+#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.3_Bc2/costfactor,linetype="dotted"),show_guide=TRUE)+
+#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.1_Bc2/costfactor,linetype="longdash"),show_guide=TRUE)+
+#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.1_Bc2/costfactor,linetype="dotted"),show_guide=TRUE)+  
+#     geom_point(data=plotdata, aes(Proj_depth,Proj_cost_per_m, size=Proj_width),shape=1)+
+#     geom_text(data=textdata,aes(Proj_depth,Proj_cost_per_m,label=paste(round(Proj_R_Total,digits=0),"%",sep="")),size=3,hjust=1,vjust=0)+
+#     scale_linetype_manual("Structure wave reduction %",values=c(5,3,2,1),labels=c("solid"="100(Hs=0.2)","1F"="25(Hs=0.2)","longdash"="100(Hs=0.3/0.1)","dotted"="25(Hs=0.3/0.1)"))+
+#     scale_size_continuous("Project Width",range=c(5,11),breaks=breakdata)+
+#     coord_cartesian(xlim=coord_xlim,ylim=coord_ylim)+
+#     theme_bw()+labs(title=Title,x="Depth (m)",y="Cost per m coastline (US $)")+
+#     guides(linetype=guide_legend(order=1))+
+#     guides(colour=guide_legend(order=2, override.aes=override_colour_aes,fill="NA"))+
+#     guides(size=guide_legend(order=3,override.aes=override_size_aes))
+# }
+# 
+# costcurveplot_Mangrove<-costcurveplot(costfactor=10,plotdata=Kt_Mangrove,textdata=subset(Kt_Mangrove[c(1:2,4,6:7),]),breakdata=c(800,1200,1500,1600),
+#                                       coord_xlim=c(1,1.75),coord_ylim=c(0,1000),Title="Mangrove Habitat and Replacement Structure Costs",
+#                                       override_colour_aes=list(linetype=c(0)),override_size_aes=list(linetype=c(0,0,0)))
+# 
+# costcurveplot_SaltMarsh<-costcurveplot(costfactor=1,plotdata=Kt_SaltMarsh,textdata=subset(Kt_SaltMarsh[4:6,]),breakdata=c(100,400,800,1600,2800,3000),
+#                                       coord_xlim=c(1,4),coord_ylim=c(0,15000),Title="Salt-Marsh Habitat and Replacement Structure Costs",
+#                                       override_colour_aes=list(linetype=c(0)),override_size_aes=list(linetype=c(0,0,0,0,0)))
+
 
 costcurveplot_SaltMarsh<-ggplot()+scale_linetype_identity()+
   geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.2_Bc2,linetype="solid"),show_guide=TRUE)+
@@ -415,15 +422,32 @@ costcurveplot_SaltMarsh<-ggplot()+scale_linetype_identity()+
   geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.1_Bc2,linetype="dotted"),show_guide=TRUE)+
   geom_point(data=Kt_SaltMarsh, aes(Kt_SaltMarsh$Proj_depth,Kt_SaltMarsh$Proj_cost_per_m, size=Kt_SaltMarsh$Proj_width),shape=1)+
   geom_text(data=subset(Kt_SaltMarsh[4:6,]),aes(Proj_depth,Proj_cost_per_m,label=paste(round(Proj_R_Total,digits=0),"%",sep="")),size=3,vjust=-1,hjust=1)+
-#   scale_linetype_manual("Structure wave reduction %",values=c(2,1),labels=c("solid"="100(Hs=0.2)","1F"="25(Hs=0.2)"))+
   scale_linetype_manual("Structure wave reduction %",values=c(5,3,2,1),labels=c("solid"="100(Hs=0.2)","1F"="25(Hs=0.2)","longdash"="100(Hs=0.3/0.1)","dotted"="25(Hs=0.3/0.1)"))+
   scale_size_continuous("Project Width",range=c(5,11),breaks=c(100,400,800,1600,2800,3000))+
-#   scale_colour_manual("Habitat",values=c("violet"),labels=c("Salt-Marsh"))+
+  coord_cartesian(xlim=c(1,4),ylim=c(0,15000))+
   theme_bw()+labs(title="Salt-Marsh Habitat and Replacement Structure Costs",x="Depth (m)",y="Cost per m coastline (US $)")+
   guides(linetype=guide_legend(order=1))+
   guides(colour=guide_legend(order=2, override.aes=list(linetype=c(0)),fill="NA"))+
   guides(size=guide_legend(order=3,override.aes=list(linetype=c(0,0,0,0,0))))
 costcurveplot_SaltMarsh
+
+costcurveplot_Mangrove<-ggplot()+scale_linetype_identity()+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.2_Bc2/10,linetype="solid"),show_guide=TRUE)+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.2_Bc2/10,linetype="1F"),show_guide=TRUE)+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.3_Bc2/10,linetype="longdash"),show_guide=TRUE)+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.3_Bc2/10,linetype="dotted"),show_guide=TRUE)+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.1_Bc2/10,linetype="longdash"),show_guide=TRUE)+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.1_Bc2/10,linetype="dotted"),show_guide=TRUE)+  
+  geom_point(data=Kt_Mangrove, aes(Kt_Mangrove$Proj_depth,Kt_Mangrove$Proj_cost_per_m, size=Kt_Mangrove$Proj_width),shape=1)+
+  geom_text(data=subset(Kt_Mangrove[c(1:2,4,6:7),]),aes(Proj_depth,Proj_cost_per_m,label=paste(round(Proj_R_Total,digits=0),"%",sep="")),size=3,hjust=1,vjust=0)+
+  scale_linetype_manual("Structure wave reduction %",values=c(5,3,2,1),labels=c("solid"="100(Hs=0.2)","1F"="25(Hs=0.2)","longdash"="100(Hs=0.3/0.1)","dotted"="25(Hs=0.3/0.1)"))+
+  scale_size_continuous("Project Width",range=c(5,11),breaks=c(800,1200,1500,1600))+
+  coord_cartesian(xlim=c(1,1.75),ylim=c(0,1000))+
+  theme_bw()+labs(title="Mangrove Habitat and Replacement Structure Costs",x="Depth (m)",y="Cost per m coastline (US $)")+
+  guides(linetype=guide_legend(order=1))+
+  guides(colour=guide_legend(order=2, override.aes=list(linetype=c(0)),fill="NA"))+
+  guides(size=guide_legend(order=3,override.aes=list(linetype=c(0,0,0))))
+costcurveplot_Mangrove
 
 grid.arrange(costcurveplot_Mangrove, costcurveplot_SaltMarsh,nrow=2)
 
@@ -443,25 +467,11 @@ map<-base_world+geom_point(aes(plotdata$Longitude,plotdata$Latitude, colour=plot
   theme_bw()+scale_size_continuous("Wave Reduction %               ") # scale_** changes legend titles
 map
 
-# nearbyprojects$Proj_lat<-jitter(nearbyprojects$Proj_lat, amount=1.5)
-# nearbyprojects$Proj_lon<-jitter(nearbyprojects$Proj_lon, amount=1.5)
-# map_projects<-base_world+geom_point(data=projdata, aes(x=Longitude, y=Latitude, colour=projdata$Habitat), size=4,alpha=0.8)
-# map_projects<-map_projects+labs(x="Longitude", y="Latitude", title="Nature-based Defense Projects")
-# map_projects<-map_projects+theme_bw()+scale_colour_manual("Habitat Type", labels=c("Coral Reef","Mangrove","Oyster Reef","Salt Marsh"), values=c("orange","green","light blue","violet"))
-# map_projects
-
 map_benefits<-base_world+geom_point(data=bencostdata, aes(x=Longitude, y=Latitude, colour=bencostdata$Habitat, shape=bencostdata$NearbyExp), size=4,alpha=0.8)+
   labs(x="Longitude", y="Latitude", title="Nature-based Defense Projects Reporting Coastal Protection Benefits")+
   scale_shape_manual("Nearby Field Measurement", values=c(1, 3), labels=c("No","Yes"))+
   theme_bw()+scale_colour_manual("Habitat Type", labels=c("Coral Reef","Mangrove","Salt Marsh"), values=c("orange","green","violet"))
 map_benefits
-
-# map_nearby<-base_world+geom_point(aes(nearbyprojects$Proj_lon,nearbyprojects$Proj_lat, colour=nearbyprojects$Habitat, size=nearbyprojects$Exp_R*100), alpha=0.8)
-# map_nearby<-map_nearby+theme_bw()+geom_text(size=2, label="Habitat")
-# map_nearby<-map_nearby+labs(x="Longitude", y="Latitude", title="Beneficial Nature-based Defense Projects within 10 km of a Field Measurement Site")
-# map_nearby<-map_nearby+scale_colour_manual("Habitat Type", labels=c("Coral Reef","Mangrove","Salt Marsh"), values=c("orange","green","violet"))
-# map_nearby<-map_nearby+scale_size_continuous("Wave Reduction %") # scale_** changes legend titles
-# map_nearby
 
 grid.arrange(map, map_benefits, nrow=2)
 
@@ -494,18 +504,6 @@ grid.arrange(CRBplot,MGBplot,SMBplot,SGBplot,ncol=2)
 ## Hs Reduction Versus Incoming Hs Plots
 #Variable Transformations For Absolute and Percentage Reduction Extents vs Incoming Hs (Excluding All HsC = 1)
 wvdata<-subset(alldata,alldata$HsC!=1)
-reefdata<-wvdata[grep("CR",wvdata$Habitat),] # grep() subsets data frame by rows based on a char variable
-vegdata=wvdata[grep("MG|SM|SG", wvdata$Habitat),]
-itvegdata<-subset(vegdata, vegdata$Habitat!="SG") # much better than grep() for subsetting! Note: Can use use %in% for multiple strings
-mgdata<-subset(vegdata, vegdata$Habitat=="MG")
-smdata<-subset(vegdata, vegdata$Habitat=="SM")
-sgdata<-subset(vegdata, vegdata$Habitat=="SG")
-mgdata_submerge<-subset(mgdata, mgdata$alpha<=1)
-mgdata_emerge<-subset(mgdata, mgdata$alpha>1)
-smdata_submerge<-subset(smdata, smdata$alpha<1)
-smdata_emerge<-subset(smdata, smdata$alpha>1)
-reefdata_noXoutlier<-subset(reefdata, reefdata$X<50)
-mgdata_noXoutlier<-subset(mgdata, mgdata$X<50)
 
 #Absolute Hs Plots
 # Reefs
@@ -612,7 +610,7 @@ REEFHbyhplot<-ggplot(data=MVRdata_R_REEF, group=Habitat)+geom_point(aes(x=Hbyh,y
   annotate('text',x=1.5,y=0.6,label=paste("R^2==",format(nls_R2_reef_Hbyh, digits=4)),parse=TRUE)+
 geom_vline(xintercept=0.78, linetype="dotted", color="red")
 
-#Others
+#Hbyh #Others
 Hbyhplot<-function(plotdata,Shapedata,Title)
 {
   ggplot(data=plotdata)+geom_point(aes(x=Hbyh,y=R),shape=Shapedata)+
@@ -625,8 +623,7 @@ SGHbyhplot<-Hbyhplot(sgdata,8,"Seagrass/Kelp")
 
 grid.arrange(REEFHbyhplot, MGHbyhplot,SMHbyhplot,SGHbyhplot,ncol=2)
 
-#hv/h Plots
-#MANGROVES
+#hv/h #MANGROVES
 MVRdata_R_MG_sub<-mgdata_submerge[c("Habitat","HsC","HsT","R","alpha")]
 MVRdata_R_MG_sub<-MVRdata_R_MG_sub[complete.cases(MVRdata_R_MG_sub),]
 MVRdata_R_MG_out<-subset(MVRdata_R_MG_sub, MVRdata_R_MG_sub$alpha<0.5)
@@ -645,7 +642,7 @@ MGhvbyhplot_both<-MGhvbyhplot_submerge+geom_point(data=MVRdata_R_MG_emg,aes(x=al
   geom_point(data=MVRdata_R_MG_out,aes(x=alpha,y=R),shape=0) #Add back outlier point
 MGhvbyhplot_both
 
-#MARSHES
+#hv/h #MARSHES
 MVRdata_R_SM_all<-smdata[c("Habitat","HsC","HsT","R","alpha")]
 MVRdata_R_SM_all<-MVRdata_R_SM_all[complete.cases(MVRdata_R_SM_all),]
 MVRdata_R_SM_sub<-smdata_submerge[c("Habitat","HsC","HsT","R","alpha")]
@@ -666,7 +663,7 @@ SMhvbyhplot_both<-SMhvbyhplot_submerge+geom_point(data=MVRdata_R_SM_emg,aes(x=al
   geom_point(data=MVRdata_R_SM_out,aes(x=alpha,y=R),shape=8) #Add back outlier point
 SMhvbyhplot_both
 
-#SEAGRASS/KELP
+#hv/h SEAGRASS/KELP
 MVRdata_R_SG<-sgdata[c("Habitat","HsC","HsT","R","alpha")]
 MVRdata_R_SG<-MVRdata_R_SG[complete.cases(MVRdata_R_SG),]
 MVRdata_R_SG_glm<-lm(R~alpha, MVRdata_R_SG)
@@ -680,13 +677,4 @@ SGhvbyhplot
 
 grid.arrange(MGhvbyhplot,SMhvbyhplot,nrow=2)
 
-# # ALL-HABITAT PLOTS
-# # B vs Wave Attn
-# nls_allB<-nls(R~I(a*log(B)+b),data=wvdata,start=list(a=0.01,b=0.1))
-# nls_allB_R2<-1-sum(residuals(nls_allB)^2)/sum((wvdata$R - mean(wvdata$R))^2)
-# allBplot<-ggplot(data=wvdata, group=HabitatGrp)+geom_point(aes(x=B,y=R,shape=HabitatGrp))+
-#   labs(x="Habitat Width (m)",y="Wave Reduction %")+scale_shape_manual("Habitat", values=c(2,0,8,5),labels=c("Reef","Mangrove","Seagrass/Kelp","Salt-Marsh"))+
-#   theme_bw()+theme(legend.position=c(1,0),legend.justification=c(1,0))+
-#   geom_smooth(data=wvdata,aes(x=B,y=R),method="nls",formula=y~I(a*log(x)+b),start=list(a=0.1,b=0.01),se=FALSE,linetype=2,colour="black")+
-#   scale_y_continuous(labels=function(x)x*100)+annotate('text',x=3000,y=0.15,label=paste("R^2==",format(nls_allB_R2, digits=4)),parse=TRUE)
-# allBplot
+## THE END ##
