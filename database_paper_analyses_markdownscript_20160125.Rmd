@@ -1,3 +1,18 @@
+---
+title: "Database Analyses Script"
+author: "Narayan S"
+date: "25 January 2016"
+output: pdf_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+# Introduction  
+This document details the database analyses steps for each habitat (reefs, mangroves, marshes and grasses), including: a) variable definitions; b) meta-analyses of wave height reduction; c) analyses of project data, costs, benefits, distance to measurement sites and cost-effectiveness; d) plots of measurement and project locations, cost-effectiveness curves and wave height response curves.  
+
+# Script
+## Libraries
+```{r Libraries, results='hide', message=FALSE,warning=FALSE}
 library(ggplot2)
 library(relaimpo)
 library(rgdal)
@@ -9,12 +24,25 @@ library(maps)
 library(mapdata)
 library(rworldmap)
 require(gridExtra) # for plotting multiple plots 
+```
 
-# Data Input 
-alldata<-read.table("C:/Rfiles/SNAP/WaveReductionData_20160222.txt", header = TRUE, sep="\t")
-costdata<-read.table("C:/Rfiles/SNAP/Projectdata_20160222.txt", header = TRUE)
 
-#Dataframe Transformations and Calculations 
+## Data Input and Dataframe Transformations
+Here we read data from the field measurements ("wavereduction.txt") and the project reports ("projectdata.txt"), and do the following:      
+1. For the wave reduction data  
+  + calculate values of dimensionless variables of interest in the wave reduction response analyses  
+  + reclassify all reef habitats into a single group  
+2. For the project data  
+  + estimate mean and total costs, if a range of costs are reported  
+  + convert costs to 2014 USD using CPI indices from the table  
+  + rename habitats  
+  + create subsets of projects that: a)report location; b)report Benefit data, and/or c)report Cost data  
+  + calculate mean unit restoration costs and project areas, with Confidence Intervals, for each habitat type and store these in a   separate variable  
+  + store some of these values in a variable "meanvals" for writing to an output file  
+  
+``` {r Data Input and Transformations, results='hide', message=FALSE,warning=FALSE}
+alldata<-read.table("C:/Rfiles/SNAP/WaveReductionData_20150902.txt", header = TRUE, sep="\t")
+costdata<-read.table("C:/Rfiles/SNAP/Projectdata_20151117.txt", header = TRUE)
 alldata<-alldata %>%
   mutate(
     hvbyh=hv/h,
@@ -33,7 +61,30 @@ costdata<-costdata %>%
     HabitatName=ifelse(Habitat=="CR","Coral Reef",ifelse(Habitat=="OR","Oyster Reef",ifelse(Habitat=="SM","Salt Marsh","Mangrove")))
   )
 
-# Variable Definitions
+projdata<-subset(costdata, costdata$Latitude!="NaN")
+bencostdata<-subset(costdata, Benefit.Type!="NaN")
+creationcostdata<-subset(costdata,costdata$Habitat.Cost.Per.SquareMeter!="NaN")
+
+creationcostdata<-group_by(creationcostdata, HabitatName)
+meanvals<-creationcostdata %>%
+  mutate(
+    MeanUnitCost=mean(Habitat.Cost.Per.SquareMeter),
+    Cost95Upper=MeanUnitCost+sd(Habitat.Cost.Per.SquareMeter)*1.96/sqrt(length(HabitatName)),
+    Cost95Lower=MeanUnitCost-sd(Habitat.Cost.Per.SquareMeter)*1.96/sqrt(length(HabitatName)),
+    MeanArea=mean(Area),
+    Area95Upper=MeanArea+sd(Area)*1.96/sqrt(length(HabitatName)),
+    Area95Lower=MeanArea-sd(Area)*1.96/sqrt(length(HabitatName))
+    )
+creationcostdata<-ungroup(creationcostdata)
+meanvals<-meanvals %>%
+  dplyr::select(HabitatName, MeanUnitCost, Cost95Upper, Cost95Lower, MeanArea, Area95Upper, Area95Lower) %>%
+  distinct(HabitatName)
+```
+
+
+## Variable Definitions
+Here we define new variables outside the datasets, as required for the meta-analyses, regression analyses and plots    
+``` {r Variable Definitions,results="hide", message=FALSE,warning=FALSE}
 wvdata<-subset(alldata,alldata$HsC!=-999)
 reefdata<-subset(wvdata, wvdata$HabitatGrp=="CR")
 vegdata<-subset(wvdata, wvdata$HabitatGrp!="CR")
@@ -47,7 +98,6 @@ smdata_submerge<-subset(smdata, smdata$alpha<1)
 smdata_emerge<-subset(smdata, smdata$alpha>1)
 reefdata_noXoutlier<-subset(reefdata, reefdata$X<50)
 mgdata_noXoutlier<-subset(mgdata, mgdata$X<50)
-
 #Estimating median widths
 reefdata_Border<-reefdata[order(reefdata$B),]
 reef_B_median<-median(reefdata_Border$B,na.rm=TRUE)
@@ -57,27 +107,16 @@ smdata_Border<-smdata[order(smdata$B),]
 sm_B_median<-median(smdata_Border$B,na.rm=TRUE)
 sgdata_Border<-sgdata[order(sgdata$B),]
 sg_B_median<-median(sgdata_Border$B,na.rm=TRUE)
-
-################ CREATE AND WRITE OUT SUPPLEMENTARY INFO TABLES ######################
-#Note: except for first two, all tables to be written after generating in code below.
-
-suppltable_waves<-alldata[c("ID","First_Author","Year","Country","Habitat","Latitude","Longitude","Variable","Depth_Control","n","h","Tp","B","hv","HsC","HsT","R","Hbyh","alpha","X")]
-colnames(suppltable_waves)<-c("ID","First_Author","Year","Country","Habitat","Latitude","Longitude","Variable","n","h","Tp","B","hv","Hsi","Hst","R","H/h","hv/h","B/L")
-suppltable_costs<-costdata[c("ID","First_Author","Year","Country","Habitat","Latitude","Longitude","Width","Length","Area","Objective","Exposure","Habitat.Cost.Reported.Total","Cost.Year","Currency","CPI.2014","USD.2014","Habitat.Cost.USD2014","Habitat.Cost.Per.SquareMeter","Benefit.Type")]
-write.table(suppltable_waves, "C:/Rfiles/SNAP/wavereductionmeasurements.txt", sep="\t",row.names=F)
-write.table(suppltable_costs, "C:/Rfiles/SNAP/projectcostsandbenefits.txt", sep="\t",row.names=F)
-
-write.table(nearbyprojects, "C:/Rfiles/SNAP/nearbyprojects.txt", sep="\t",row.names=F)
-write.table(struct_comparison, "C:/Rfiles/SNAP/StructureToProjectCostRatios.txt", sep="\t",row.names=F)
-write.table(meanRRvals, "C:/Rfiles/SNAP/MeanRRVals.txt", sep="\t",row.names=F)
-write.table(struceffcostvals, "C:/Rfiles/SNAP/StruceffcostVals.txt", sep="\t",row.names=F)
-write.table(plotdata, "C:/Rfiles/SNAP/Plotdata.txt", sep="\t",row.names=F)
-write.table(bencostdata, "C:/Rfiles/SNAP/beneficialprojects.txt", sep="\t",row.names=F)
+```
 
 
-###############  Random Effects Model for Wave Height Reduction Meta-Analyses #####################
-#calculated using Eq 4.19, Eq 12.6, Eq 11.2 in Borenstein, 2009.
+## Meta-Analyses of Wave Height Reduction  
+### Random Effects Model  
+#### Using Eq 4.19, Eq 12.6, Eq 11.2 in Borenstein, 2009
+  
+Here we create a function for meta-analyses of wave height reduction measurements, for each habitat, to measure the effect size, R, defined as the ratio of the wave height after the habitat to the wave height before the habitat. The function is evaluated separately for each habitat type. We also create a table "meanRRvals" for writing to an output file.  
 
+```{r Meta-Analyses, message=FALSE,warning=FALSE}
 meta_analyses <- function(habitat) {
   habitat %>%
     mutate(
@@ -124,31 +163,17 @@ meanRRvals[1:4,5]=c(mean(meta_reefs$MeanRR_energy),mean(meta_marshes$MeanRR_ener
 meanRRvals[1:4,6]=c(mean(meta_reefs$ULm_energy),mean(meta_marshes$ULm_energy),mean(meta_mangroves$ULm_energy),mean(meta_grasses$ULm_energy))
 meanRRvals[1:4,7]=c(mean(meta_reefs$LLm_energy),mean(meta_marshes$LLm_energy),mean(meta_mangroves$LLm_energy),mean(meta_grasses$LLm_energy))
 meanRRvals[1:4,8]=c(mean(reefdata$HsC),mean(smdata$HsC),mean(mgdata$HsC),mean(sgdata$HsC))
+meanRRvals
+```
 
-############# PROJECT DATA CALCULATIONS #################
 
-projdata<-subset(costdata, costdata$Latitude!="NaN")
-bencostdata<-subset(costdata, Benefit.Type!="NaN")
-creationcostdata<-subset(costdata,costdata$Habitat.Cost.Per.SquareMeter!="NaN")
+## Project Data Analyses
+### Estimating distances to field measurements and site conditions for all nearby projects
+Here we do two pieces of analyses:    
+1. Subset all beneficial projects that are within a specified distance (in this case 50 km) of a recorded field measurement site, to use later in a global plot  
+2. Subset all projects that report cost data and are within 50 km For each unique pair of nearby projects and field measurements we create a new set of Nature-based Defense (NbD) projects that have area, cost and benefit data from the project site and wave, wave reduction, water level and habitat data from the field measurement site. 
 
-creationcostdata<-group_by(creationcostdata, HabitatName)
-meanvals<-creationcostdata %>%
-  mutate(
-    MeanUnitCost=mean(Habitat.Cost.Per.SquareMeter),
-    Cost95Upper=MeanUnitCost+sd(Habitat.Cost.Per.SquareMeter)*1.96/sqrt(length(HabitatName)),
-    Cost95Lower=MeanUnitCost-sd(Habitat.Cost.Per.SquareMeter)*1.96/sqrt(length(HabitatName)),
-    MeanArea=mean(Area),
-    Area95Upper=MeanArea+sd(Area)*1.96/sqrt(length(HabitatName)),
-    Area95Lower=MeanArea-sd(Area)*1.96/sqrt(length(HabitatName))
-    )
-creationcostdata<-ungroup(creationcostdata)
-meanvals<-meanvals %>%
-  dplyr::select(HabitatName, MeanUnitCost, Cost95Upper, Cost95Lower, MeanArea, Area95Upper, Area95Lower) %>%
-  distinct(HabitatName)
-
-############ Replacement Cost Ratio Calculations ######################
-
-# OBTAINING NEARBY PROJECT SITES FOR MAPPING THAT ARE < X DECIMAL DEGREES FROM A FIELD EXPERIMENT SITE (0.46=50km; 0.09=10km; 0.01=1km).
+```{r Project Data Analyses,results="hide", message=FALSE,warning=FALSE}
 for(i in 1:length(bencostdata$ID))
 {
   for (j in 1:length(alldata$ID))
@@ -165,7 +190,7 @@ for(i in 1:length(bencostdata$ID))
     
   }
 }
-# OBTAINING NBD CONDITIONS FROM MEASUREMENTS AND NEARBY PROJECTS AND CALCULATING REPLACEMENT COST RATIOS
+
 nearbyprojects<-data.frame(matrix(NA,ncol=23,nrow=length(alldata$ID)))
 colnames(nearbyprojects)<-c("Proj_ID","Exp_ID","Proj_Study","Exp_Study","Habitat","Country","Proj_lat","Proj_lon","Exp_lat","Exp_lon","Proj_area","Proj_width","Exp_width","Exp_depth","Exp_Hs","Exp_Tp","Exp_R","Exp_R_per_m","Exp_r","Proj_cost_m2","Proj_B_type","Proj_Rpercent","Proj_cost_per_m2")
 k=0
@@ -201,12 +226,16 @@ for(i in 1:length(projdata$ID)) {
       nearbyprojects$Proj_cost_m2[k]<-as.numeric(projdata$Habitat.Cost.Per.SquareMeter[i])
       nearbyprojects$Proj_B_type[k]<-as.character(projdata$Benefit.Type[i])
     }
-}}
-# nearbyprojects<-subset(nearbyprojects,nearbyprojects$Proj_ID!="NA")
+  }}
 nearbyprojects<-nearbyprojects[order(nearbyprojects$Proj_ID, -nearbyprojects$Exp_R),]
-# nearbyprojects<-nearbyprojects[!(duplicated(nearbyprojects$Proj_ID)&duplicated(nearbyprojects$Exp_lat)&duplicated(nearbyprojects$Exp_lon)),] #In-built function!
+```
 
-#CALCULATING COST AND WAVE REDUCTION OF PROJECTS USING NEARBY FIELD MEASUREMENTS
+  
+## Estimate cost and wave reduction effectiveness of new set of NbD projects
+Here we first estimate the unit restoration costs and total wave reduction of the NbD projects (that have nearby field measurements) and then estimate the construction costs of a submerged breakwater to achieve the same wave reduction under the same site conditions. All these projects are either mangroves or salt-marshes.  
+  
+```{r Replacement Cost Analyses: Part 1,results="hide", message=FALSE,warning=FALSE}
+#NbD Project restoration costs and wave reduction extents
 nearbyprojects<-filter(nearbyprojects,Proj_width>1&Proj_width!="NA")
 nearbyprojects<-filter(nearbyprojects,Exp_Hs!=1)
 nearbyprojects<-nearbyprojects %>%
@@ -218,20 +247,7 @@ nearbyprojects<-nearbyprojects %>%
     )
 nearbyprojects<-filter(nearbyprojects, Proj_cost_per_m!="NA")
 
-#Calculating dimensions and cost of comparable breakwater for wave reduction
-#PROCEDURE AND ASSUMPTIONS
-#Costs and wave reduction per m length of coastline are calculated for a hypothetical nature-based defense project 
-#based on Wave reduction from field measurements at the site and costs from a nearby project site (<10 km).
-#Habitat width is assumed to be the same as the width for the nearby project.
-#Total Wave reduction by a project is calculated as project width times reduction per m from the field measurement 
-#Multiple measurements at the same location are treated as separate projects if there is variation in at least one
-#of the following variables: Hs, project width, depth, rate of reduction or cost per m.
-#The comparable structure is assumed to be a submerged breakwater (for wave reduction only)
-# Structure freeboard (Rc) and crest width (Bc) are calculated to obtain a Kt roughly similar to the habitat Kt.
-# Rc and Bc are calculated using standard engineeering formulae for the desired Kt from van der Meer et al. (2005).
-
-
-## Replacement Cost Ratios and Structure Cost Curves
+#Structure dimensions and costs (based on USACE reports and manuals)
 slope=1/100 #bottom slope
 repstrucvol=36.288 #m3 per m of cross-section from NACCS Appendix T, Fig II-10
 repstruccost=27600 #US$ per mfrom NACCS Appendix T, Table II-10
@@ -262,12 +278,15 @@ struct_comparison<-struct_comparison %>%
     WidthAvg_RCratio=mean(RCratio)
     ) %>%
   ungroup() # Remember to ungroup!
+```
 
+Next, we estimate the dimensions and costs of breakwaters across a range of transmission coefficients, for all the wave and water level conditions at the project sites, to develop cost curves for the replacement submerged breakwaters. We also estimate the value of the replacement structure for each project's habitat.  
+
+```{r Replacement Cost Analyses: Part 2, message=FALSE,warning=FALSE}
 Kt_All<-struct_comparison %>%
   distinct(Proj_depth,Proj_width) %>%
   select(Proj_ID, Country, Habitat, Proj_width, Proj_depth, Hs, Struc_Bc, Proj_cost_per_m,Proj_R_Total, Struc_max_effective_unitcost_per_m, Kt_Family) %>%
   arrange(Proj_depth)
-
 Kt_Struc<-Kt_All %>%
   distinct(Proj_depth) %>%
   mutate(
@@ -344,51 +363,31 @@ struceffcostvals[1:2,2]=c(mg_struc_maxunitcost_mean,sm_struc_maxunitcost_mean)
 struceffcostvals[1:2,3]=c(mg_struc_maxunitcost_mean-mg_struc_maxunitcost_margin, sm_struc_maxunitcost_mean-sm_struc_maxunitcost_margin)
 struceffcostvals[1:2,4]=c(mg_struc_maxunitcost_mean+mg_struc_maxunitcost_margin, sm_struc_maxunitcost_mean+sm_struc_maxunitcost_margin)
 struceffcostvals
+```
 
-##########Cost Curve Plots ###################
-costcurveplot_All<-ggplot()+scale_linetype_identity()+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.2_Bc2,linetype="solid"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.75_Hs0.2_Bc2,linetype="1F"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.2_Bc2/10,linetype="longdash"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.75_Hs0.2_Bc2/10,linetype="dotted"),show_guide=TRUE)+
-  geom_point(data=Kt_All, position="jitter",aes(Kt_All$Proj_depth,Kt_All$Proj_cost_per_m, colour=Kt_All$Habitat,size=Kt_All$Proj_width),shape=1)+
-  geom_text(data=Kt_All[c(3,5,11:13),],aes(Proj_depth,Proj_cost_per_m,label=paste(round(Proj_R_Total,digits=0),"%",sep="")),size=3,vjust=1)+
-  scale_linetype_manual("Structure wave reduction %",values=c(5,3,2,1),labels=c("solid"="100(Europe/USA)","1F"="25(Europe/USA)","longdash"="100(Vietnam)","dotted"="25(Vietnam)"))+
-  scale_size_continuous("Project Width",range=c(3,15),breaks=c(500,1500,2500,3000))+
-  scale_colour_manual("Habitat",values=c("green","violet"),labels=c("Mangrove","Salt-Marsh"))+
-  theme_bw()+labs(title="Replacement Structure Cost Curves",x="Depth (m)",y="Cost per m coastline (US $)")+
+  
+## Plots
+
+Now we plot.   
+
+First we plot the cost curves just estimated versus all NbD project water depths, alongside the project wave reduction extents, and by habitat.    
+```{r Plots: Cost Curves, echo=FALSE, message=FALSE,warning=FALSE}
+costcurveplot_Mangrove<-ggplot()+scale_linetype_identity()+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.2_Bc2/10,linetype="solid"),show_guide=TRUE)+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.2_Bc2/10,linetype="1F"),show_guide=TRUE)+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.3_Bc2/10,linetype="longdash"),show_guide=TRUE)+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.3_Bc2/10,linetype="dotted"),show_guide=TRUE)+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.1_Bc2/10,linetype="longdash"),show_guide=TRUE)+
+  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.1_Bc2/10,linetype="dotted"),show_guide=TRUE)+  
+  geom_point(data=Kt_Mangrove, aes(Kt_Mangrove$Proj_depth,Kt_Mangrove$Proj_cost_per_m, size=Kt_Mangrove$Proj_width),shape=1)+
+  geom_text(data=subset(Kt_Mangrove[c(1:2,4,6:7),]),aes(Proj_depth,Proj_cost_per_m,label=paste(round(Proj_R_Total,digits=0),"%",sep="")),size=3,hjust=1,vjust=0)+
+  scale_linetype_manual("Structure wave reduction %",values=c(5,3,2,1),labels=c("solid"="100(Hs=0.2)","1F"="25(Hs=0.2)","longdash"="100(Hs=0.3/0.1)","dotted"="25(Hs=0.3/0.1)"))+
+  scale_size_continuous("Project Width",range=c(5,11),breaks=c(800,1200,1500,1600))+
+  coord_cartesian(xlim=c(1,1.75),ylim=c(0,1000))+
+  theme_bw()+labs(title="Mangrove Habitat and Replacement Structure Costs",x="Depth (m)",y="Cost per m coastline (US $)")+
   guides(linetype=guide_legend(order=1))+
-  guides(colour=guide_legend(order=2, override.aes=list(linetype=c(0,0)),fill="NA"))+
-  guides(size=guide_legend(order=4,override.aes=list(linetype=c(0,0,0))))
-costcurveplot_All
-
-# costcurveplot<-function(costfactor, plotdata, textdata,breakdata,coord_xlim,coord_ylim,Title,override_colour_aes,override_size_aes)
-# {
-#   ggplot()+scale_linetype_identity()+
-#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=costfactor*Kt_Struc$StrucCost0.05_Hs0.2_Bc2,linetype="solid"),show_guide=TRUE)+
-#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=costfactor*Kt_Struc$StrucCost0.75_Hs0.2_Bc2*costfactor,linetype="1F"),show_guide=TRUE)+
-#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=costfactor*Kt_Struc$StrucCost0.05_Hs0.3_Bc2*costfactor,linetype="longdash"),show_guide=TRUE)+
-#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=costfactor*Kt_Struc$StrucCost0.75_Hs0.3_Bc2*costfactor,linetype="dotted"),show_guide=TRUE)+
-#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=costfactor*Kt_Struc$StrucCost0.05_Hs0.1_Bc2*costfactor,linetype="longdash"),show_guide=TRUE)+
-#     geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=costfactor*Kt_Struc$StrucCost0.75_Hs0.1_Bc2*costfactor,linetype="dotted"),show_guide=TRUE)+  
-#     geom_point(data=plotdata, aes(Proj_depth,Proj_cost_per_m, size=Proj_width),shape=1)+
-#     geom_text(data=textdata,aes(Proj_depth,Proj_cost_per_m,label=paste(round(Proj_R_Total,digits=0),"%",sep="")),size=3,hjust=1,vjust=0)+
-#     scale_linetype_manual("Structure wave reduction %",values=c(5,3,2,1),labels=c("solid"="100(Hs=0.2)","1F"="25(Hs=0.2)","longdash"="100(Hs=0.3/0.1)","dotted"="25(Hs=0.3/0.1)"))+
-#     scale_size_continuous("Project Width",range=c(5,11),breaks=breakdata)+
-#     coord_cartesian(xlim=coord_xlim,ylim=coord_ylim)+
-#     theme_bw()+labs(title=Title,x="Depth (m)",y="Cost per m coastline (US $)")+
-#     guides(linetype=guide_legend(order=1))+
-#     guides(colour=guide_legend(order=2, override.aes=override_colour_aes,fill="NA"))+
-#     guides(size=guide_legend(order=3,override.aes=override_size_aes))
-# }
-# 
-# costcurveplot_Mangrove<-costcurveplot(costfactor=0.1,plotdata=Kt_Mangrove,textdata=subset(Kt_Mangrove[c(1:2,4,6:7),]),breakdata=c(800,1200,1500,1600),
-#                                       coord_xlim=c(1,1.75),coord_ylim=c(0,1000),Title="Mangrove Habitat and Replacement Structure Costs",
-#                                       override_colour_aes=list(linetype=c(0)),override_size_aes=list(linetype=c(0,0,0)))
-# 
-# costcurveplot_SaltMarsh<-costcurveplot(costfactor=1,plotdata=Kt_SaltMarsh,textdata=subset(Kt_SaltMarsh[4:6,]),breakdata=c(100,400,800,1600,2800,3000),
-#                                        coord_xlim=c(1,4),coord_ylim=c(0,15000),Title="Salt-Marsh Habitat and Replacement Structure Costs",
-#                                        override_colour_aes=list(linetype=c(0)),override_size_aes=list(linetype=c(0,0,0,0,0)))
+  guides(colour=guide_legend(order=2, override.aes=list(linetype=c(0)),fill="NA"))+
+  guides(size=guide_legend(order=3,override.aes=list(linetype=c(0,0,0))))
 
 costcurveplot_SaltMarsh<-ggplot()+scale_linetype_identity()+
   geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.2_Bc2,linetype="solid"),show_guide=TRUE)+
@@ -406,30 +405,13 @@ costcurveplot_SaltMarsh<-ggplot()+scale_linetype_identity()+
   guides(linetype=guide_legend(order=1))+
   guides(colour=guide_legend(order=2, override.aes=list(linetype=c(0)),fill="NA"))+
   guides(size=guide_legend(order=3,override.aes=list(linetype=c(0,0,0,0,0))))
-costcurveplot_SaltMarsh
-
-costcurveplot_Mangrove<-ggplot()+scale_linetype_identity()+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.2_Bc2/10,linetype="solid"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.2_Bc2/10,linetype="1F"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.3_Bc2/10,linetype="longdash"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.3_Bc2/10,linetype="dotted"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth,y=Kt_Struc$StrucCost0.05_Hs0.1_Bc2/10,linetype="longdash"),show_guide=TRUE)+
-  geom_line(data=Kt_Struc, aes(x=Kt_Struc$Proj_depth, y=Kt_Struc$StrucCost0.75_Hs0.1_Bc2/10,linetype="dotted"),show_guide=TRUE)+  
-  geom_point(data=Kt_Mangrove, aes(Kt_Mangrove$Proj_depth,Kt_Mangrove$Proj_cost_per_m, size=Kt_Mangrove$Proj_width),shape=1)+
-  geom_text(data=subset(Kt_Mangrove[c(1:2,4,6:7),]),aes(Proj_depth,Proj_cost_per_m,label=paste(round(Proj_R_Total,digits=0),"%",sep="")),size=3,hjust=1,vjust=0)+
-  scale_linetype_manual("Structure wave reduction %",values=c(5,3,2,1),labels=c("solid"="100(Hs=0.2)","1F"="25(Hs=0.2)","longdash"="100(Hs=0.3/0.1)","dotted"="25(Hs=0.3/0.1)"))+
-  scale_size_continuous("Project Width",range=c(5,11),breaks=c(800,1200,1500,1600))+
-  coord_cartesian(xlim=c(1,1.75),ylim=c(0,1000))+
-  theme_bw()+labs(title="Mangrove Habitat and Replacement Structure Costs",x="Depth (m)",y="Cost per m coastline (US $)")+
-  guides(linetype=guide_legend(order=1))+
-  guides(colour=guide_legend(order=2, override.aes=list(linetype=c(0)),fill="NA"))+
-  guides(size=guide_legend(order=3,override.aes=list(linetype=c(0,0,0))))
-costcurveplot_Mangrove
 
 grid.arrange(costcurveplot_Mangrove, costcurveplot_SaltMarsh,nrow=2)
+```
+  
 
-#######################  WAVE ATTENUATION GLOBAL PLOTS ########################
-
+Next we plot the global map of field measurement and project sites, showing extents of wave reduction and only projects that report benefits.  
+```{r Plots: Global Maps, echo=FALSE, message=FALSE,warning=FALSE}
 plotdata<-alldata
 # (using http://stackoverflow.com/questions/16028659/plots-on-a-map-using-ggplot2)
 map<-ggplot()
@@ -442,19 +424,19 @@ map<-base_world+geom_point(aes(plotdata$Longitude,plotdata$Latitude, colour=plot
   geom_text(size=2, label="Habitat")+labs(x="",y="Latitude", title="Field Measurements of Wave Reduction in Coastal Habitats")+
   scale_colour_manual("Habitat Type", labels=c("Reef Crest", "Reef Flat", "Whole Reef","Mangrove","Seagrass/Kelp","Salt Marsh"), values=c("red","orange","yellow2","green","blue","violet"))+
   theme_bw()+scale_size_continuous("Wave Reduction %               ") # scale_** changes legend titles
-map
 
 map_benefits<-base_world+geom_point(data=bencostdata, aes(x=Longitude, y=Latitude, colour=bencostdata$Habitat, shape=bencostdata$NearbyExp), size=4,alpha=0.8)+
   labs(x="Longitude", y="Latitude", title="Nature-based Defense Projects Reporting Coastal Protection Benefits")+
   scale_shape_manual("Nearby Field Measurement", values=c(1, 3), labels=c("No","Yes"))+
   theme_bw()+scale_colour_manual("Habitat Type", labels=c("Coral Reef","Mangrove","Salt Marsh"), values=c("orange","green","violet"))
-map_benefits
 
 grid.arrange(map, map_benefits, nrow=2)
+```
+  
 
-################### TREND ANALYSES PLOTS ###############################
-
-## Hs Reduction Versus Width Plots
+Next we plot the meta-analyses results in the order:  
+1. Wave reduction % versus habitat width    
+```{r Plots: Wave Reduction Versus Widths,echo=FALSE, message=FALSE,warning=FALSE}
 #Reefs
 nls_reef_B<-nls(R~a*log(B)+b,reefdata,start=list(a=0.1,b=0.01))
 nls_R2_reef_B<-1-sum(residuals(nls_reef_B)^2)/sum((reefdata$R - mean(reefdata$R))^2)
@@ -463,7 +445,6 @@ CRBplot<-ggplot(data=reefdata,group=Habitat)+geom_point(aes(x=B,y=R,shape=Habita
   theme_bw()+theme(legend.position=c(1,0), legend.justification=c(1,0))+
   geom_smooth(data=reefdata,aes(x=B,y=R),method="nls",formula=y~I(a*log(x)+b),start=list(a=0.1,b=0.01),se=FALSE,linetype=2,colour="black")+
   scale_y_continuous(labels=function(x)x*100)+annotate('text',x=2800,y=0.8,label=paste("R^2==",format(nls_R2_reef_B, digits=4)),parse=TRUE)
-CRBplot
 
 #Others
 Width_plot<-function(plotdata,Title,Shapedata)
@@ -477,11 +458,12 @@ SMBplot<-Width_plot(smdata,"Salt-Marshes",5)
 SGBplot<-Width_plot(sgdata,"Seagrass/Kelp",8)
 
 grid.arrange(CRBplot,MGBplot,SMBplot,SGBplot,ncol=2)
+```
+  
 
-## Hs Reduction Versus Incoming Hs Plots
-#Variable Transformations For Absolute and Percentage Reduction Extents vs Incoming Hs (Excluding All HsC = 1)
+2. Wave reduction extents (absolute and %) versus incoming wave height. This first requires removal of all variables that do not report an incoming wave height.  
+```{r Plots: Wave Reduction Versus Incoming Wave Heights,echo=FALSE, message=FALSE,warning=FALSE}
 wvdata<-subset(alldata,alldata$HsC!=1)
-
 #Absolute Hs Plots
 # Reefs
 reef_HsC_lm_Abs<-lm((reefdata$HsC - reefdata$HsT)~reefdata$HsC)
@@ -532,8 +514,26 @@ SGHsplot<-HsC_rel_plot(sgdata,"Salt-Marshes",8)
 
 grid.arrange(CRHsplot_Abs,MGHsplot_Abs,SMHsplot_Abs,SGHsplot_Abs,ncol=2)
 grid.arrange(CRHsplot,MGHsplot,SMHsplot,SGHsplot,ncol=2)
+```
 
-## DIMENSIONLESS PARAMETER PLOTS BY HABITAT
+  
+Finally we plot wave reduction versus dimensionless parameters, for specific parameters and specific habitats. These include:  
+1. H/h and B/L for Reefs  
+```{r Plots: Dimensionless Parameter Trends - Reefs,echo=FALSE, message=FALSE,warning=FALSE}
+#H/h
+wvdata<-subset(alldata,alldata$HsC!=1)
+#Reefs
+reefdata<-wvdata[grep("CR",wvdata$Habitat),] # grep() subsets data frame by rows based on a char variable
+MVRdata_R_REEF<-reefdata[c("Habitat","HsC","HsT","R", "Hbyh")]
+MVRdata_R_REEF<-MVRdata_R_REEF[complete.cases(MVRdata_R_REEF),]
+nls_reef_Hbyh<-nls(R~a*log(Hbyh)+b,MVRdata_R_REEF,start=list(a=0.1,b=0.01))
+nls_R2_reef_Hbyh<-1-sum(residuals(nls_reef_Hbyh)^2)/sum(MVRdata_R_REEF$R - mean(MVRdata_R_REEF$R)^2)
+REEFHbyhplot<-ggplot(data=MVRdata_R_REEF, group=Habitat)+geom_point(aes(x=Hbyh,y=R,shape=Habitat))+
+  labs(title="Reefs",x="Relative wave height, H/h",y="Wave Attenuation %")+scale_shape_manual("Reef Environment",values=c(2,4,3),labels=c("Crest","Flat","Whole Reef"))+
+  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(1,0))+
+  geom_smooth(data=MVRdata_R_REEF,aes(x=Hbyh,y=R),method=nls,formula=y~I(a*log(x)+b),se=FALSE,start=list(a=0.1,b=0.01), linetype=2,colour="black")+
+  annotate('text',x=1.5,y=0.6,label=paste("R^2==",format(nls_R2_reef_Hbyh, digits=4)),parse=TRUE)+
+geom_vline(xintercept=0.78, linetype="dotted", color="red")
 
 #B/L
 wvdata<-subset(alldata,alldata$HsC!=-999)
@@ -558,35 +558,34 @@ REEFBbyLplot<-ggplot(data=MVRdata_R_reef, group=Habitat)+geom_point(aes(x=X,y=R,
   annotation_custom(ggplotGrob(sub),xmin=3,xmax=10,ymin=-0.2,ymax=0.3)
 
 grid.arrange(REEFHbyhplot,REEFBbyLplot,ncol=2)
+```
+  
 
-#Others
-BbyLplot<-function(plotdata,Shapedata,Title)
-{
-  ggplot(data=plotdata)+geom_point(aes(x=X,y=R),shape=Shapedata)+
-    labs(title=Title,x="Relative Width, B/L",y="Wave Attenuation %")+theme_bw()
-}
+2. hv/h for salt-marshes  
+```{r Plots: Dimensionless Parameter Trends - Salt-Marshes,echo=FALSE, message=FALSE,warning=FALSE}
+MVRdata_R_SM_all<-smdata[c("Habitat","HsC","HsT","R","alpha")]
+MVRdata_R_SM_all<-MVRdata_R_SM_all[complete.cases(MVRdata_R_SM_all),]
+MVRdata_R_SM_sub<-smdata_submerge[c("Habitat","HsC","HsT","R","alpha")]
+MVRdata_R_SM_sub<-MVRdata_R_SM_sub[complete.cases(MVRdata_R_SM_sub),]
+MVRdata_R_SM_out<-subset(MVRdata_R_SM_sub, MVRdata_R_SM_sub$alpha<0.1)
+MVRdata_R_SM_sub<-subset(MVRdata_R_SM_sub, MVRdata_R_SM_sub$alpha>0.1) ## Caution! Removing outlier!
+MVRdata_R_SM_glm_sub<-lm(R~alpha, MVRdata_R_SM_sub)
+summary(MVRdata_R_SM_glm_sub) 
+SMhvbyhplot_submerge<-ggplot(data=MVRdata_R_SM_sub)+geom_point(aes(x=alpha,y=R),shape=8)+
+  labs(title="Salt-Marshes",x="Relative vegetation height, hv/h",y="Wave Attenuation %")+
+  theme_bw()+geom_smooth(data=MVRdata_R_SM_sub,aes(x=alpha,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
+  annotate('text',x=0.7,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_SM_glm_sub)$adj.r.squared, digits=4)),parse=TRUE)
+SMhvbyhplot_submerge
+MVRdata_R_SM_emg<-smdata_emerge[c("Habitat","HsC","HsT","R","alpha")]
+MVRdata_R_SM_emg<-MVRdata_R_SM_emg[complete.cases(MVRdata_R_SM_emg),]
+SMhvbyhplot_both<-SMhvbyhplot_submerge+geom_point(data=MVRdata_R_SM_emg,aes(x=alpha,y=R),shape=8)+
+  geom_vline(xintercept=1,linetype="dotted",color="red")+
+  geom_point(data=MVRdata_R_SM_out,aes(x=alpha,y=R),shape=8) #Add back outlier point
+SMhvbyhplot_both
+```
 
-MGBbyLplot<-BbyLplot(mgdata,0,"Mangroves")
-SMBbyLplot<-BbyLplot(smdata,5,"Salt-Marshes")
-SGBbyLplot<-BbyLplot(sgdata,8,"Seagrass/Kelp")
-
-grid.arrange(REEFBbyLplot, MGBbyLplot,SMBbyLplot,SGBbyLplot,ncol=2)
-
-#H/h
-wvdata<-subset(alldata,alldata$HsC!=1)
-#Reefs
-reefdata<-wvdata[grep("CR",wvdata$Habitat),] # grep() subsets data frame by rows based on a char variable
-MVRdata_R_REEF<-reefdata[c("Habitat","HsC","HsT","R", "Hbyh")]
-MVRdata_R_REEF<-MVRdata_R_REEF[complete.cases(MVRdata_R_REEF),]
-nls_reef_Hbyh<-nls(R~a*log(Hbyh)+b,MVRdata_R_REEF,start=list(a=0.1,b=0.01))
-nls_R2_reef_Hbyh<-1-sum(residuals(nls_reef_Hbyh)^2)/sum(MVRdata_R_REEF$R - mean(MVRdata_R_REEF$R)^2)
-REEFHbyhplot<-ggplot(data=MVRdata_R_REEF, group=Habitat)+geom_point(aes(x=Hbyh,y=R,shape=Habitat))+
-  labs(title="Reefs",x="Relative wave height, H/h",y="Wave Attenuation %")+scale_shape_manual("Reef Environment",values=c(2,4,3),labels=c("Crest","Flat","Whole Reef"))+
-  theme_bw()+theme(legend.position=c(1,0),legend.justification=c(1,0))+
-  geom_smooth(data=MVRdata_R_REEF,aes(x=Hbyh,y=R),method=nls,formula=y~I(a*log(x)+b),se=FALSE,start=list(a=0.1,b=0.01), linetype=2,colour="black")+
-  annotate('text',x=1.5,y=0.6,label=paste("R^2==",format(nls_R2_reef_Hbyh, digits=4)),parse=TRUE)+
-geom_vline(xintercept=0.78, linetype="dotted", color="red")
-
+3. Other dimensionless parameter plots are also possible.  
+```{r,echo=FALSE,results="hide", message=FALSE,warning=FALSE}
 #Hbyh #Others
 Hbyhplot<-function(plotdata,Shapedata,Title)
 {
@@ -617,28 +616,6 @@ MVRdata_R_MG_emg<-MVRdata_R_MG_emg[complete.cases(MVRdata_R_MG_emg),]
 MGhvbyhplot_both<-MGhvbyhplot_submerge+geom_point(data=MVRdata_R_MG_emg,aes(x=alpha,y=R),shape=0)+
   geom_vline(xintercept=1.0,linetype="dotted",color="red")+
   geom_point(data=MVRdata_R_MG_out,aes(x=alpha,y=R),shape=0) #Add back outlier point
-MGhvbyhplot_both
-
-#hv/h #MARSHES
-MVRdata_R_SM_all<-smdata[c("Habitat","HsC","HsT","R","alpha")]
-MVRdata_R_SM_all<-MVRdata_R_SM_all[complete.cases(MVRdata_R_SM_all),]
-MVRdata_R_SM_sub<-smdata_submerge[c("Habitat","HsC","HsT","R","alpha")]
-MVRdata_R_SM_sub<-MVRdata_R_SM_sub[complete.cases(MVRdata_R_SM_sub),]
-MVRdata_R_SM_out<-subset(MVRdata_R_SM_sub, MVRdata_R_SM_sub$alpha<0.1)
-MVRdata_R_SM_sub<-subset(MVRdata_R_SM_sub, MVRdata_R_SM_sub$alpha>0.1) ## Caution! Removing outlier!
-MVRdata_R_SM_glm_sub<-lm(R~alpha, MVRdata_R_SM_sub)
-summary(MVRdata_R_SM_glm_sub) 
-SMhvbyhplot_submerge<-ggplot(data=MVRdata_R_SM_sub)+geom_point(aes(x=alpha,y=R),shape=8)+
-  labs(title="Salt-Marshes",x="Relative vegetation height, hv/h",y="Wave Attenuation %")+
-  theme_bw()+geom_smooth(data=MVRdata_R_SM_sub,aes(x=alpha,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
-  annotate('text',x=0.7,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_SM_glm_sub)$adj.r.squared, digits=4)),parse=TRUE)
-SMhvbyhplot_submerge
-MVRdata_R_SM_emg<-smdata_emerge[c("Habitat","HsC","HsT","R","alpha")]
-MVRdata_R_SM_emg<-MVRdata_R_SM_emg[complete.cases(MVRdata_R_SM_emg),]
-SMhvbyhplot_both<-SMhvbyhplot_submerge+geom_point(data=MVRdata_R_SM_emg,aes(x=alpha,y=R),shape=8)+
-  geom_vline(xintercept=1,linetype="dotted",color="red")+
-  geom_point(data=MVRdata_R_SM_out,aes(x=alpha,y=R),shape=8) #Add back outlier point
-SMhvbyhplot_both
 
 #hv/h SEAGRASS/KELP
 MVRdata_R_SG<-sgdata[c("Habitat","HsC","HsT","R","alpha")]
@@ -650,8 +627,27 @@ SGhvbyhplot<-ggplot(data=MVRdata_R_SG)+geom_point(aes(x=alpha,y=R),shape=0)+
   theme_bw()+theme(legend.position=c(1,0),legend.justification=c(0,1))+
   geom_smooth(data=MVRdata_R_SG,aes(x=alpha,y=R),method=lm,formula=y~x,se=FALSE,linetype=2,colour="black")+
   annotate('text',x=0.7,y=0.36,label=paste("R^2==",format(summary(MVRdata_R_SG_glm)$adj.r.squared, digits=4)),parse=TRUE)
-SGhvbyhplot
 
-grid.arrange(MGhvbyhplot,SMhvbyhplot,nrow=2)
+grid.arrange(MGhvbyhplot_both,SGhvbyhplot,nrow=2)
+```
+  
 
-## THE END ##
+
+## Write Output Tables
+Here we write output tables to txt files, intended as Supplemenatary Information  
+```{r, message=FALSE,warning=FALSE}
+suppltable_waves<-alldata[c("ID","First_Author","Year","Country","Habitat","Latitude","Longitude","Variable","Depth_Control","n","h","Tp","B","hv","HsC","HsT","R","Hbyh","alpha","X")]
+colnames(suppltable_waves)<-c("ID","First_Author","Year","Country","Habitat","Latitude","Longitude","Variable","n","h","Tp","B","hv","Hsi","Hst","R","H/h","hv/h","B/L")
+suppltable_costs<-costdata[c("ID","First_Author","Year","Country","Habitat","Latitude","Longitude","Width","Length","Area","Objective","Exposure","Habitat.Cost.Reported.Total","Cost.Year","Currency","CPI.2014","USD.2014","Habitat.Cost.USD2014","Habitat.Cost.Per.SquareMeter","Benefit.Type")]
+write.table(suppltable_waves, "C:/Rfiles/SNAP/wavereductionmeasurements.txt", sep="\t",row.names=F)
+write.table(suppltable_costs, "C:/Rfiles/SNAP/projectcostsandbenefits.txt", sep="\t",row.names=F)
+write.table(nearbyprojects, "C:/Rfiles/SNAP/nearbyprojects.txt", sep="\t",row.names=F)
+write.table(struct_comparison, "C:/Rfiles/SNAP/StructureToProjectCostRatios.txt", sep="\t",row.names=F)
+write.table(meanRRvals, "C:/Rfiles/SNAP/MeanRRVals.txt", sep="\t",row.names=F)
+write.table(struceffcostvals, "C:/Rfiles/SNAP/StruceffcostVals.txt", sep="\t",row.names=F)
+write.table(plotdata, "C:/Rfiles/SNAP/Plotdata.txt", sep="\t",row.names=F)
+write.table(bencostdata, "C:/Rfiles/SNAP/beneficialprojects.txt", sep="\t",row.names=F)
+```
+  
+
+That's all, folks!  
