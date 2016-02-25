@@ -100,12 +100,15 @@ meta_analyses <- function(habitat) {
       Wi_star.Yi=Wi_star*Yi,
       r=(1-RR)/B,
       M_star=sum(Wi_star.Yi)/sum(Wi_star),
-      Vm_star=1/sum(Wi_star),
-      Sem_star=sqrt(Vm_star),
-      Z_star=M_star/Sem_star,
+      VM_star=1/sum(Wi_star),
+      SeM_star=sqrt(VM_star),
+      Z_star=M_star/SeM_star,
+      p_value=pnorm(-abs(Z_star)),
+      LLM_star=M_star-1.96*SeM_star,
+      ULM_star=M_star+1.96*SeM_star,
       MeanRR=100*(1-exp(M_star)),
-      LLm=100*(1-exp(M_star-1.96*Sem_star)),
-      ULm=100*(1-exp(M_star+1.96*Sem_star)),
+      LLm=100*(1-exp(M_star-1.96*SeM_star)),
+      ULm=100*(1-exp(M_star+1.96*SeM_star)),
       MeanRR_energy=(1-(1-MeanRR/100)^2)*100,
       LLm_energy=(1-(1-LLm/100)^2)*100,
       ULm_energy=(1-(1-ULm/100)^2)*100
@@ -127,6 +130,18 @@ meanRRvals[1:4,5]=c(mean(meta_reefs$MeanRR_energy),mean(meta_marshes$MeanRR_ener
 meanRRvals[1:4,6]=c(mean(meta_reefs$ULm_energy),mean(meta_marshes$ULm_energy),mean(meta_mangroves$ULm_energy),mean(meta_grasses$ULm_energy))
 meanRRvals[1:4,7]=c(mean(meta_reefs$LLm_energy),mean(meta_marshes$LLm_energy),mean(meta_mangroves$LLm_energy),mean(meta_grasses$LLm_energy))
 meanRRvals[1:4,8]=c(mean(reefdata$Hs.i),mean(smdata$Hs.i),mean(mgdata$Hs.i),mean(sgdata$Hs.i))
+
+signiftest=data.frame(matrix(NA,ncol=5,nrow=4))
+colnames(signiftest)<-c("Habitat","Effect_Size","CI_Lower","CI_Upper","P_Value")
+signiftest[1:4,1]=c("Coral Reefs","Salt_Marshes","Mangroves","Seagrass/Kelp Beds")
+signiftest[1:4,2]=c(mean(meta_reefs$M_star),mean(meta_marshes$M_star),mean(meta_mangroves$M_star),mean(meta_grasses$M_star))
+signiftest[1:4,3]=c(mean(meta_reefs$LLM_star),mean(meta_marshes$LLM_star),mean(meta_mangroves$LLM_star),mean(meta_grasses$LLM_star))
+signiftest[1:4,4]=c(mean(meta_reefs$ULM_star),mean(meta_marshes$ULM_star),mean(meta_mangroves$ULM_star),mean(meta_grasses$ULM_star))
+signiftest[1:4,5]=c(mean(meta_reefs$p_value),mean(meta_marshes$p_value),mean(meta_mangroves$p_value),mean(meta_grasses$p_value))
+
+effectsizeplot<-ggplot(data=signiftest)+geom_point(aes(x=Habitat,y=Effect_Size),size=4)+theme_bw()+
+  geom_pointrange(aes(x=Habitat,y=Effect_Size, ymin=CI_Lower,ymax=CI_Upper))
+effectsizeplot
 
 ############# PROJECT DATA CALCULATIONS #################
 
